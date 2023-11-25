@@ -7,7 +7,7 @@ import urllib.request
 import urllib.parse
 from lxml import etree
 
-from wsse import encrypt, sign_manual
+from wsse import encrypt, sign
 
 sml_server = 'edelivery.tech.ec.europa.eu'
 sml_server = 'acc.edelivery.tech.ec.europa.eu' # test
@@ -119,24 +119,12 @@ def generate_as4_message_to_post(filename):
 
     #print(document_hash)
 
-    #xml_doc = etree.parse('TestFile_003__BISv3_Invoice.xml').getroot()
-
     password = ''
     
-    sign_manual(xml_envelope, doc_id, document_hash, body_id, body_hash, messaging_id, messaging_hash, keyfile, certfile, password)
+    sign(xml_envelope, doc_id, document_hash, body_id, body_hash, messaging_id, messaging_hash, keyfile, certfile, password)
     encrypt(xml_envelope, document_data, certfile)
 
     print(etree.tostring(xml_envelope, pretty_print=True).decode('utf-8'))
-
-    # header id: _009c69da-cafc-43cd-92bc-d11bfb02467b
-    # body id: _3e8e69f5-5b7a-42e0-9858-a4928394d37f
-    
-    # 1 signature value
-    # 3 digest values (body, header, attachment), kan måske undgå attachment:
-    # - etlDlu2GHdwJoht5Np2B6u+M6piyHQMebiqsrJcjCGE= (body)
-    # - seVLJI1HyXTpnyufmewF6ok2eqHhcTdJVBHzlhDGmqA= (ns2:Messaging)
-    # - eY/BptNbHHf1IZBCqzp2SFgBkxIfIV3en6fv+YFW+nw= (attachment)
-    # 1 ciphervalue
     
 # 9922:ngtbcntrlp1001
 # 9922:NGTBCNTRLP1001
@@ -153,4 +141,3 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #extract_as4_information(smp_contents)
 
 generate_as4_message_to_post('example-file.txt')
-

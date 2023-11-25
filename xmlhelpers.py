@@ -7,13 +7,15 @@ def ns(namespace, tagname):
 
 ID_ATTR = ns(WSU_NS, 'Id')
 
-# FIXME: allow one to pass in id
-def get_unique_id():
-    return 'id-{0}'.format(uuid4())
+def get_unique_id(id_type=None):
+    if id_type:
+        return '{}-{}'.format(id_type, uuid4())
+    else:
+        return '_{}'.format(uuid4())
 
-def ensure_id(node):
+def ensure_id(node, id_type=None):
     id_val = node.get(ID_ATTR)
     if not id_val:
-        id_val = get_unique_id()
+        id_val = get_unique_id(id_type)
         node.set(ID_ATTR, id_val)
     return id_val

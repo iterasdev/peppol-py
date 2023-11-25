@@ -1,4 +1,6 @@
-"""Functions for WS-Security (WSSE) signing + encrypting
+"""
+Functions for WS-Security (WSSE) signing + encrypting
+
 Code based on python-zeep & py-wsee
 """
 
@@ -37,9 +39,9 @@ def sign(envelope, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
     #print(signature_value)
 
     key_info = etree.tostring(create_key_info_bst(security_token)).decode('utf-8')
-   
+
     signature = """
-<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Id="SIG-20411e9f-632b-4e95-9c73-1c6935f1f0a8">
+<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
 %s
 <ds:SignatureValue>%s</ds:SignatureValue>
 %s
@@ -48,23 +50,23 @@ def sign(envelope, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
 
     security.insert(1, etree.fromstring(signature))
 
-def encrypted_data_element():
+def encrypted_data_element(cid, ek_id):
     return """<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="ED-368427a8-7b98-473f-b2c9-60421d9b38e1" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only"><xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
  <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
    <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
-    <wsse:Reference URI="#EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2"/>
+    <wsse:Reference URI="#{}"/>
    </wsse:SecurityTokenReference>
  </ds:KeyInfo>
  <xenc:CipherData>
-  <xenc:CipherReference URI="cid:cd5d3394-0468-4c88-9af1-4de02d5121a0@beta.iola.dk">
+  <xenc:CipherReference URI="{}">
    <xenc:Transforms>
     <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
    </xenc:Transforms>
   </xenc:CipherReference>
  </xenc:CipherData>
-</xenc:EncryptedData>"""
-    
-def encrypt(envelope, data, certfile):
+</xenc:EncryptedData>""".format(ek_id, cid)
+
+def encrypt(envelope, data_id, data, certfile):
     header = envelope.find(ns(ENV_NS, 'Header'))
     security = header.find(ns(WSSE_NS, 'Security'))
 
@@ -93,12 +95,14 @@ def encrypt(envelope, data, certfile):
     cert_bst = create_binary_security_token(certfile)
     security.insert(0, cert_bst)
 
+    ek_id = ensure_id(enc_key, 'EK')
+
     # ds:KeyInfo node referencing the BinarySecurityToken
     enc_key.insert(1, create_key_info_bst(cert_bst))
     security.insert(1, enc_key)
 
     # xenc:EncryptedData
-    enc_data_el = etree.fromstring(encrypted_data_element())
+    enc_data_el = etree.fromstring(encrypted_data_element(data_id, ek_id))
 
     add_data_reference(enc_key, enc_data_el)
 
@@ -161,7 +165,7 @@ def create_key_info_bst(security_token):
     sec_token_ref.set(ns(WSSE_NS, 'TokenType'), security_token.get('ValueType'))
 
     # reference BinarySecurityToken
-    bst_id = ensure_id(security_token)
+    bst_id = ensure_id(security_token, 'BST')
     reference = etree.SubElement(sec_token_ref, ns(WSSE_NS, 'Reference'))
     reference.set('ValueType', security_token.get('ValueType'))
     reference.set('URI', '#%s' % bst_id)

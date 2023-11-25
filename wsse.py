@@ -9,14 +9,7 @@ from lxml import etree
 from OpenSSL import crypto
 import xmlsec
 
-NS2_NS = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/'
-WSU = (
-    "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"
-)
-ATTACHMENT = 'http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Signature-Transform'
-C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
-
-from constants import BASE64B, X509TOKEN, DS_NS, ENC_NS, ENV_NS, WSSE_NS
+from constants import BASE64B, X509TOKEN, DS_NS, ENC_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N
 from xmlhelpers import ensure_id, ns
 
 def add_missing_ds_namespace(element, payload):

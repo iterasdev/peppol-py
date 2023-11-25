@@ -8,3 +8,6 @@ WSU_NS = WSS_BASE + 'oasis-200401-wss-wssecurity-utility-1.0.xsd'
 
 BASE64B = WSS_BASE + 'oasis-200401-wss-soap-message-security-1.0#Base64Binary'
 X509TOKEN = WSS_BASE + 'oasis-200401-wss-x509-token-profile-1.0#X509v3'
+
+ATTACHMENT = 'http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Signature-Transform'
+C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'

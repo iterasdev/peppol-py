@@ -78,13 +78,15 @@ def generate_hash(payload):
 # the document will be:
 # - be transformed to a "cannonical" c14n (NOT c14n2!) representation using the exclude option
 # - be gzipped (even if different implementations zips differently, the level is not even specified)
-def generate_document_hash(document):
+def generate_gzipped_document(document):
     xmldoc = etree.fromstring(document)
     et = etree.ElementTree(xmldoc)
     out = io.BytesIO()
     et.write(out, method="c14n", exclusive=True)
-    gzip = zlib.compress(out.getvalue())
-    return b64encode(hashlib.sha256(gzip).digest()).decode('utf-8')
+    return zlib.compress(out.getvalue())
+
+def generate_document_hash(gzip_document):
+    return b64encode(hashlib.sha256(gzip_document).digest()).decode('utf-8')
 
 def generate_as4_message_to_post(filename):
     messaging_id = '_009c69da-cafc-43cd-92bc-d11bfb02467b'
@@ -110,8 +112,10 @@ def generate_as4_message_to_post(filename):
 
     doc_id = 'cid:cd5d3394-0468-4c88-9af1-4de02d5121a0@beta.iola.dk'
     document_hash = ''
+    document_data = None
     with open('TestFile_003__BISv3_Invoice.xml', 'r') as f:
-        document_hash = generate_document_hash(f.read().encode('utf-8'))
+        document_data = generate_gzipped_document(f.read().encode('utf-8'))
+        document_hash = generate_document_hash(document_data)
 
     #print(document_hash)
 
@@ -120,7 +124,7 @@ def generate_as4_message_to_post(filename):
     password = ''
     
     sign_manual(xml_envelope, doc_id, document_hash, body_id, body_hash, messaging_id, messaging_hash, keyfile, certfile, password)
-    #encrypt(xml_envelope, "", certfile)
+    encrypt(xml_envelope, document_data, certfile)
 
     print(etree.tostring(xml_envelope, pretty_print=True).decode('utf-8'))
 

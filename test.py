@@ -1,7 +1,4 @@
 import hashlib
-from base64 import b64encode
-import io
-import zlib
 import dns.resolver
 import urllib.request
 import urllib.parse
@@ -10,6 +7,7 @@ from uuid import uuid4
 
 from wsse import encrypt, sign
 from xmlhelpers import get_unique_id
+from hashing import generate_hash, generate_gzipped_document, generate_document_hash
 
 sml_server = 'edelivery.tech.ec.europa.eu'
 sml_server = 'acc.edelivery.tech.ec.europa.eu' # test
@@ -63,45 +61,18 @@ def extract_as4_information(smp_contents):
     print("cert:")
     print(certificate)
 
-# FIXME: make more general and move to helpers
-def add_missing_env_namespace(element, payload):
-    return payload.replace("<" + element, "<" + element + " " + 'xmlns:env="http://www.w3.org/2003/05/soap-envelope"')
-    
-# the payload must / will be:
-# - have all namespaces so that it is valid xml (even if this is not what is submitted over the network)
-# - be transformed to a "cannonical" c14n (NOT c14n2!) representation using the exclude option
-def generate_hash(payload):
-    xmldoc = etree.fromstring(payload)
-    et = etree.ElementTree(xmldoc)
-    out = io.BytesIO()
-    et.write(out, method="c14n", exclusive=True)
-    return b64encode(hashlib.sha256(out.getvalue()).digest()).decode('utf-8')
-
-# the document will be:
-# - be transformed to a "cannonical" c14n (NOT c14n2!) representation using the exclude option
-# - be gzipped (even if different implementations zips differently, the level is not even specified)
-def generate_gzipped_document(document):
-    xmldoc = etree.fromstring(document)
-    et = etree.ElementTree(xmldoc)
-    out = io.BytesIO()
-    et.write(out, method="c14n", exclusive=True)
-    return zlib.compress(out.getvalue())
-
-def generate_document_hash(gzip_document):
-    return b64encode(hashlib.sha256(gzip_document).digest()).decode('utf-8')
-
 def generate_as4_message_to_post(filename):
     # FIXME: generate this based on xml doc (filename)
     messaging_id = '_009c69da-cafc-43cd-92bc-d11bfb02467b'
     messaging = '<ns2:Messaging xmlns:ns2="http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/" xmlns:ns3="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" env:mustUnderstand="true" wsu:Id="_009c69da-cafc-43cd-92bc-d11bfb02467b"><ns2:UserMessage><ns2:MessageInfo><ns2:Timestamp>2023-11-17T11:52:08.464+01:00</ns2:Timestamp><ns2:MessageId>216e0a25-e672-44a1-902e-2edf2225a564@beta.iola.dk</ns2:MessageId></ns2:MessageInfo><ns2:PartyInfo><ns2:From><ns2:PartyId type="urn:fdc:peppol.eu:2017:identifiers:ap">PDK000592</ns2:PartyId><ns2:Role>http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator</ns2:Role></ns2:From><ns2:To><ns2:PartyId type="urn:fdc:peppol.eu:2017:identifiers:ap">PGD000005</ns2:PartyId><ns2:Role>http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder</ns2:Role></ns2:To></ns2:PartyInfo><ns2:CollaborationInfo><ns2:AgreementRef>urn:fdc:peppol.eu:2017:agreements:tia:ap_provider</ns2:AgreementRef><ns2:Service type="cenbii-procid-ubl">urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ns2:Service><ns2:Action>busdox-docid-qns::urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1</ns2:Action><ns2:ConversationId>f820302d-0329-4d52-a53c-f63275a3bd2f@beta.iola.dk</ns2:ConversationId></ns2:CollaborationInfo><ns2:MessageProperties><ns2:Property name="originalSender" type="iso6523-actorid-upis">0096:pdk000592</ns2:Property><ns2:Property name="finalRecipient" type="iso6523-actorid-upis">9922:ngtbcntrlp1001</ns2:Property></ns2:MessageProperties><ns2:PayloadInfo><ns2:PartInfo href="cid:cd5d3394-0468-4c88-9af1-4de02d5121a0@beta.iola.dk"><ns2:PartProperties><ns2:Property name="CompressionType">application/gzip</ns2:Property><ns2:Property name="MimeType">application/xml</ns2:Property></ns2:PartProperties></ns2:PartInfo></ns2:PayloadInfo></ns2:UserMessage></ns2:Messaging>'
 
-    messaging_hash = generate_hash(add_missing_env_namespace('ns2:Messaging', messaging))
+    messaging_hash = generate_hash(messaging)
     #print(messaging_hash)
 
     body_id = get_unique_id()
     body = '<env:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="%s"></env:Body>' % (body_id,)
 
-    body_hash = generate_hash(add_missing_env_namespace('env:Body', body))
+    body_hash = generate_hash(body)
     #print(body_hash)
     
     wss_section = '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" env:mustUnderstand="true"></wsse:Security>'
@@ -117,8 +88,7 @@ def generate_as4_message_to_post(filename):
     document_hash = ''
     document_data = None
     with open('TestFile_003__BISv3_Invoice.xml', 'r') as f:
-        document_data = generate_gzipped_document(f.read().encode('utf-8'))
-        document_hash = generate_document_hash(document_data)
+        document_data, document_hash = generate_document_hash(f.read().encode('utf-8'))
 
     #print(document_hash)
 

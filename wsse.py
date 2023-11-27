@@ -28,8 +28,8 @@ def sign(envelope, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
 
     ctx = xmlsec.SignatureContext()
     ctx.key = key
-    
-    xml_sig_info = etree.fromstring(add_missing_ds_namespace('ds:SignedInfo', sig_info))
+
+    xml_sig_info = etree.fromstring(sig_info.replace("<ds:SignedInfo>", "<ds:SignedInfo xmlns:ds='{}'>".format(DS_NS)))
     et = etree.ElementTree(xml_sig_info)
     out = io.BytesIO()
     et.write(out, method="c14n", exclusive=True)
@@ -109,9 +109,6 @@ def encrypt(envelope, data_id, data, certfile):
     security.insert(2, enc_data_el)
 
 ### HELPERS ###
-
-def add_missing_ds_namespace(element, payload):
-    return payload.replace("<" + element, "<" + element + ' xmlns:ds="http://www.w3.org/2000/09/xmldsig#"')
 
 def _sign_key(keyfile, certfile, password):
     key = xmlsec.Key.from_file(keyfile, xmlsec.KeyFormat.PEM, password)

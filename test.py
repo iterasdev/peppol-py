@@ -4,10 +4,12 @@ import urllib.request
 import urllib.parse
 from lxml import etree
 from uuid import uuid4
+from datetime import datetime
 
 from wsse import encrypt, sign
-from xmlhelpers import get_unique_id
-from hashing import generate_hash, generate_gzipped_document, generate_document_hash
+from xmlhelpers import ns
+from constants import NS2, ENV_NS, WSSE_NS, WSU_NS
+from hashing import generate_document_hash
 
 sml_server = 'edelivery.tech.ec.europa.eu'
 sml_server = 'acc.edelivery.tech.ec.europa.eu' # test
@@ -61,43 +63,91 @@ def extract_as4_information(smp_contents):
     print("cert:")
     print(certificate)
 
+def generate_as4_envelope(document):
+    envelope = etree.Element(ns(ENV_NS, 'Envelope'), nsmap={'env': ENV_NS})
+    header = etree.SubElement(envelope, ns(ENV_NS, 'Header'), nsmap={'env': ENV_NS})
+
+    attribs = { etree.QName(ENV_NS, 'mustUnderstand'): "true", "Id": "_{}".format(uuid4()) }
+    messaging = etree.SubElement(header, ns(NS2, 'Messaging'), attribs, nsmap={'ns2': NS2, 'wsu': WSU_NS})
+    generate_as4_messaging_part(messaging, document)
+
+    etree.SubElement(header, ns(WSSE_NS, 'Security'),
+                     { etree.QName(ENV_NS, 'mustUnderstand'): "true" },
+                     nsmap={'wsse': WSSE_NS})
+
+    body = etree.SubElement(envelope, ns(ENV_NS, 'Body'),
+                            { etree.QName(WSU_NS, 'Id'): "_{}".format(uuid4()) },
+                            nsmap={'env': ENV_NS, 'wsu': WSU_NS})
+
+    return envelope, messaging, body
+    
+def generate_as4_messaging_part(messaging, document):
+    user_message = etree.SubElement(messaging, ns(NS2, 'UserMessage'))
+
+    now = datetime.now().astimezone().isoformat()
+    message_info = etree.SubElement(user_message, ns(NS2, 'MessageInfo'))
+    etree.SubElement(message_info, ns(NS2, 'Timestamp')).text='{}'.format(now)
+    etree.SubElement(message_info, ns(NS2, 'MessageId')).text='{}@beta.iola.dk'.format(uuid4())
+
+    party_info = etree.SubElement(user_message, ns(NS2, 'PartyInfo'))
+
+    from_info = etree.SubElement(party_info, ns(NS2, 'From'))
+    # FIXME: from doc
+    etree.SubElement(from_info, ns(NS2, 'PartyId'),
+                     { "type": "urn:fdc:peppol.eu:2017:identifiers:ap" }).text='PDK000592'
+    etree.SubElement(from_info, ns(NS2, 'Role')).text = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator'
+    
+    to_info = etree.SubElement(party_info, ns(NS2, 'To'))
+    # FIXME: from service description
+    etree.SubElement(to_info, ns(NS2, 'PartyId'),
+                     { "type": "urn:fdc:peppol.eu:2017:identifiers:ap" }).text='PGD000005'
+    etree.SubElement(to_info, ns(NS2, 'Role')).text = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder'
+
+    collab_info = etree.SubElement(user_message, ns(NS2, 'CollaborationInfo'))
+    etree.SubElement(collab_info, ns(NS2, 'AgreementRef')).text = 'urn:fdc:peppol.eu:2017:agreements:tia:ap_provider'
+    etree.SubElement(collab_info, ns(NS2, 'Service'),
+                     { "type": "cenbii-procid-ubl" }).text = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'
+    etree.SubElement(collab_info, ns(NS2, 'Action')).text = 'busdox-docid-qns::urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1'
+    etree.SubElement(collab_info, ns(NS2, 'ConversationId')).text = '{}@beta.iola.dk'.format(uuid4())
+
+    message_props = etree.SubElement(user_message, ns(NS2, 'MessageProperties'))
+    etree.SubElement(message_props, ns(NS2, 'Property'),
+                     { "name": "originalSender", "type": "iso6523-actorid-upis" }).text = '0096:pdk000592' # FIXME: from doc
+    etree.SubElement(message_props, ns(NS2, 'Property'),
+                     { "name": "finalRecipient", "type": "iso6523-actorid-upis" }).text = '9922:ngtbcntrlp1001' # FIXME: from doc
+
+    payload_info = etree.SubElement(user_message, ns(NS2, 'PayloadInfo'))
+    part_info = etree.SubElement(payload_info, ns(NS2, 'PartInfo'),
+                                 { "href": "cid:cd5d3394-0468-4c88-9af1-4de02d5121a0@beta.iola.dk" }) # FIXME: cid
+    part_props = etree.SubElement(part_info, ns(NS2, 'PartProperties'))
+    etree.SubElement(part_props, ns(NS2, 'Property'),
+                     { "name": "CompressionType" }).text = 'application/gzip'
+    etree.SubElement(part_props, ns(NS2, 'Property'),
+                     { "name": "MimeType" }).text = 'application/xml'
+    
 def generate_as4_message_to_post(filename):
-    # FIXME: generate this based on xml doc (filename)
-    messaging_id = '_009c69da-cafc-43cd-92bc-d11bfb02467b'
-    messaging = '<ns2:Messaging xmlns:ns2="http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/" xmlns:ns3="http://schemas.xmlsoap.org/soap/envelope/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" env:mustUnderstand="true" wsu:Id="_009c69da-cafc-43cd-92bc-d11bfb02467b"><ns2:UserMessage><ns2:MessageInfo><ns2:Timestamp>2023-11-17T11:52:08.464+01:00</ns2:Timestamp><ns2:MessageId>216e0a25-e672-44a1-902e-2edf2225a564@beta.iola.dk</ns2:MessageId></ns2:MessageInfo><ns2:PartyInfo><ns2:From><ns2:PartyId type="urn:fdc:peppol.eu:2017:identifiers:ap">PDK000592</ns2:PartyId><ns2:Role>http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator</ns2:Role></ns2:From><ns2:To><ns2:PartyId type="urn:fdc:peppol.eu:2017:identifiers:ap">PGD000005</ns2:PartyId><ns2:Role>http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder</ns2:Role></ns2:To></ns2:PartyInfo><ns2:CollaborationInfo><ns2:AgreementRef>urn:fdc:peppol.eu:2017:agreements:tia:ap_provider</ns2:AgreementRef><ns2:Service type="cenbii-procid-ubl">urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ns2:Service><ns2:Action>busdox-docid-qns::urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1</ns2:Action><ns2:ConversationId>f820302d-0329-4d52-a53c-f63275a3bd2f@beta.iola.dk</ns2:ConversationId></ns2:CollaborationInfo><ns2:MessageProperties><ns2:Property name="originalSender" type="iso6523-actorid-upis">0096:pdk000592</ns2:Property><ns2:Property name="finalRecipient" type="iso6523-actorid-upis">9922:ngtbcntrlp1001</ns2:Property></ns2:MessageProperties><ns2:PayloadInfo><ns2:PartInfo href="cid:cd5d3394-0468-4c88-9af1-4de02d5121a0@beta.iola.dk"><ns2:PartProperties><ns2:Property name="CompressionType">application/gzip</ns2:Property><ns2:Property name="MimeType">application/xml</ns2:Property></ns2:PartProperties></ns2:PartInfo></ns2:PayloadInfo></ns2:UserMessage></ns2:Messaging>'
+    doc_id = 'cid:{}@beta.iola.dk'.format(uuid4())
 
-    messaging_hash = generate_hash(messaging)
-    #print(messaging_hash)
+    file_contents = ''
+    with open(filename, 'r') as f:
+        file_contents = f.read().encode('utf-8')
 
-    body_id = get_unique_id()
-    body = '<env:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="%s"></env:Body>' % (body_id,)
-
-    body_hash = generate_hash(body)
-    #print(body_hash)
-    
-    wss_section = '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" env:mustUnderstand="true"></wsse:Security>'
-    
-    envelope = '<env:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope"><env:Header>' + messaging + wss_section + '</env:Header>' + body + '</env:Envelope>'
-    
-    xml_envelope = etree.fromstring(envelope)
+    envelope, messaging, body = generate_as4_envelope(file_contents)
+    #print(etree.tostring(envelope, pretty_print=True).decode('utf-8'))
 
     keyfile = "test.key.pem"
     certfile = "cert.pem"
 
-    doc_id = 'cid:{}@beta.iola.dk'.format(uuid4())
-    document_hash = ''
-    document_data = None
-    with open('TestFile_003__BISv3_Invoice.xml', 'r') as f:
-        document_data, document_hash = generate_document_hash(f.read().encode('utf-8'))
-
+    document_data, document_hash = generate_document_hash(file_contents)
     #print(document_hash)
 
     password = ''
-    
-    sign(xml_envelope, doc_id, document_hash, body_id, body_hash, messaging_id, messaging_hash, keyfile, certfile, password)
-    encrypt(xml_envelope, doc_id, document_data, certfile)
 
-    print(etree.tostring(xml_envelope, pretty_print=True).decode('utf-8'))
+    # FIXME: consider id + hash as elements and include type
+    sign(envelope, doc_id, document_hash, body, messaging, keyfile, certfile, password)
+    encrypt(envelope, doc_id, document_data, certfile)
+
+    print(etree.tostring(envelope, pretty_print=True).decode('utf-8'))
     
 # 9922:ngtbcntrlp1001
 # 9922:NGTBCNTRLP1001
@@ -113,4 +163,4 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #smp_contents = get_smp_info(smp_domain, receiver)
 #extract_as4_information(smp_contents)
 
-generate_as4_message_to_post('example-file.txt')
+generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')

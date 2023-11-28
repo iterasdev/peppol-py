@@ -13,8 +13,9 @@ import xmlsec
 
 from constants import BASE64B, X509TOKEN, DS_NS, ENC_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N
 from xmlhelpers import ensure_id, ns
+from hashing import generate_hash
 
-def sign(envelope, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash, keyfile, certfile, password):
+def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, password):
     header = envelope.find(ns(ENV_NS, 'Header'))
     security = header.find(ns(WSSE_NS, 'Security'))
 
@@ -23,7 +24,10 @@ def sign(envelope, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
     
     key = _sign_key(keyfile, certfile, password)
 
-    sig_info = signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash)
+    messaging_hash = generate_hash(messaging)
+    body_hash = generate_hash(body)
+
+    sig_info = signature_info(doc_id, doc_hash, body.get('Id'), body_hash, messaging.get('Id'), messaging_hash)
     #print(sig_info)
 
     ctx = xmlsec.SignatureContext()

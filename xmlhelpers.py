@@ -19,8 +19,3 @@ def ensure_id(node, id_type=None):
         id_val = get_unique_id(id_type)
         node.set(ID_ATTR, id_val)
     return id_val
-
-# for manual hashing
-def add_missing_namespace(payload, namespace):
-    first_space = payload.find(" ")
-    return payload[:first_space] + " " + namespace + payload[first_space:]

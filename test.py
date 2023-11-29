@@ -143,7 +143,6 @@ def generate_as4_message_to_post(filename):
 
     password = ''
 
-    # FIXME: consider id + hash as elements and include type
     sign(envelope, doc_id, document_hash, body, messaging, keyfile, certfile, password)
     encrypt(envelope, doc_id, document_data, certfile)
 

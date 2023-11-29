@@ -11,7 +11,7 @@ from lxml import etree
 from OpenSSL import crypto
 import xmlsec
 
-from constants import BASE64B, X509TOKEN, DS_NS, ENC_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N
+from constants import BASE64B, X509TOKEN, DS_NS, ENC_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N, WSU_NS
 from xmlhelpers import ensure_id, ns
 from hashing import generate_hash
 
@@ -26,8 +26,9 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
 
     messaging_hash = generate_hash(messaging)
     body_hash = generate_hash(body)
+    body_id = body.get(etree.QName(WSU_NS, 'Id'))
 
-    sig_info = signature_info(doc_id, doc_hash, body.get('Id'), body_hash, messaging.get('Id'), messaging_hash)
+    sig_info = signature_info(doc_id, doc_hash, body_id, body_hash, messaging.get('Id'), messaging_hash)
     #print(sig_info)
 
     ctx = xmlsec.SignatureContext()

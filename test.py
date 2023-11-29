@@ -137,6 +137,7 @@ def generate_as4_message_to_post(filename):
 
     keyfile = "test.key.pem"
     certfile = "cert.pem"
+    their_certfile = "server-cert.pem"
 
     document_data, document_hash = generate_document_hash(file_contents)
     #print(document_hash)
@@ -144,7 +145,7 @@ def generate_as4_message_to_post(filename):
     password = ''
 
     sign(envelope, doc_id, document_hash, body, messaging, keyfile, certfile, password)
-    encrypt(envelope, doc_id, document_data, certfile)
+    encrypt(envelope, doc_id, document_data, their_certfile)
 
     print(etree.tostring(envelope, pretty_print=True).decode('utf-8'))
     

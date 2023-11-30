@@ -11,6 +11,14 @@ from xmlhelpers import ns
 from constants import NS2, ENV_NS, WSSE_NS, WSU_NS
 from hashing import generate_document_hash
 
+import requests
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# logging
+import http.client as http_client
+import logging
+
 sml_server = 'edelivery.tech.ec.europa.eu'
 sml_server = 'acc.edelivery.tech.ec.europa.eu' # test
 
@@ -125,9 +133,9 @@ def generate_as4_messaging_part(messaging, document):
     etree.SubElement(part_props, ns(NS2, 'Property'),
                      { "name": "MimeType" }).text = 'application/xml'
     
-def generate_as4_message_to_post(filename):
-    doc_id = 'cid:{}@beta.iola.dk'.format(uuid4())
+doc_id = 'cid:{}@beta.iola.dk'.format(uuid4())
 
+def generate_as4_message_to_post(filename):
     file_contents = ''
     with open(filename, 'r') as f:
         file_contents = f.read().encode('utf-8')
@@ -139,15 +147,53 @@ def generate_as4_message_to_post(filename):
     certfile = "cert.pem"
     their_certfile = "server-cert.pem"
 
-    document_data, document_hash = generate_document_hash(file_contents)
+    gzip_document, document_hash = generate_document_hash(file_contents)
     #print(document_hash)
 
     password = ''
 
     sign(envelope, doc_id, document_hash, body, messaging, keyfile, certfile, password)
-    encrypt(envelope, doc_id, document_data, their_certfile)
+    encrypt(envelope, doc_id, gzip_document, their_certfile)
 
-    print(etree.tostring(envelope, pretty_print=True).decode('utf-8'))
+    doc = etree.tostring(envelope, pretty_print=True).decode('utf-8')
+    #print(doc)
+    return [doc, gzip_document]
+
+def enable_logging():
+    http_client.HTTPConnection.debuglevel = 1
+
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
+
+def post_multipart(url, filename):
+    enable_logging()
+
+    document, gzip = generate_as4_message_to_post(filename)
+
+    related = MIMEMultipart('related')
+
+    mt = MIMEText('application', 'soap+xml', 'utf8')
+    mt.set_payload(document)
+    mt.replace_header("Content-Transfer-Encoding", "Binary")
+    mt.add_header("Content-ID", "<root.message@cxf.apache.org>")
+    related.attach(mt)
+
+    mt = MIMEText('application', 'zip')
+    mt.set_payload(gzip)
+    mt.replace_header("Content-Transfer-Encoding", "Binary")
+    mt.add_header("Content-ID", doc_id)
+    related.attach(mt)
+
+    # java needs CRLF
+    body = related.__bytes__().replace(b'\n', b'\r\n')
+    headers = dict(related.items())
+    #headers['Content-Type'] = headers['Content-Type'] + '; type="application/soap+xml"; start="<root.message@cxf.apache.org>"; start-info="application/soap+xml"'
+
+    r = requests.post(url, data=body, headers=headers)
+    print(r.text)
     
 # 9922:ngtbcntrlp1001
 # 9922:NGTBCNTRLP1001
@@ -163,4 +209,5 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #smp_contents = get_smp_info(smp_domain, receiver)
 #extract_as4_information(smp_contents)
 
-generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')
+#generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')
+post_multipart('https://phase4-controller.testbed.peppol.org/as4', 'TestFile_003__BISv3_Invoice.xml')

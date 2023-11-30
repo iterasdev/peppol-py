@@ -56,7 +56,7 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     security.insert(1, etree.fromstring(signature))
 
 def encrypted_data_element(cid, ek_id):
-    return """<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="ED-368427a8-7b98-473f-b2c9-60421d9b38e1" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only"><xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
+    return """<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only"><xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
  <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
    <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
     <wsse:Reference URI="#{}"/>

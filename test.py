@@ -14,6 +14,8 @@ from hashing import generate_document_hash
 import requests
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+import email
 
 # logging
 import http.client as http_client
@@ -181,9 +183,8 @@ def post_multipart(url, filename):
     mt.add_header("Content-ID", "<root.message@cxf.apache.org>")
     related.attach(mt)
 
-    mt = MIMEText('application', 'zip')
-    mt.set_payload(gzip)
-    mt.replace_header("Content-Transfer-Encoding", "Binary")
+    mt = MIMEApplication(gzip, _encoder=email.encoders.encode_noop)
+    mt.add_header("Content-Transfer-Encoding", "Binary")
     mt.add_header("Content-ID", doc_id)
     related.attach(mt)
 

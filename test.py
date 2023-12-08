@@ -73,13 +73,13 @@ def extract_as4_information(smp_contents):
     print("cert:")
     print(certificate)
 
-def generate_as4_envelope(document):
+def generate_as4_envelope(document, doc_id):
     envelope = etree.Element(ns(ENV_NS, 'Envelope'), nsmap={'env': ENV_NS})
     header = etree.SubElement(envelope, ns(ENV_NS, 'Header'), nsmap={'env': ENV_NS})
 
     attribs = { etree.QName(ENV_NS, 'mustUnderstand'): "true", etree.QName(WSU_NS, "Id"): "_{}".format(uuid4()) }
     messaging = etree.SubElement(header, ns(NS2, 'Messaging'), attribs, nsmap={'ns2': NS2, 'wsu': WSU_NS})
-    generate_as4_messaging_part(messaging, document)
+    generate_as4_messaging_part(messaging, document, doc_id)
 
     etree.SubElement(header, ns(WSSE_NS, 'Security'),
                      { etree.QName(ENV_NS, 'mustUnderstand'): "true" },
@@ -91,7 +91,7 @@ def generate_as4_envelope(document):
 
     return envelope, messaging, body
     
-def generate_as4_messaging_part(messaging, document):
+def generate_as4_messaging_part(messaging, document, doc_id):
     user_message = etree.SubElement(messaging, ns(NS2, 'UserMessage'))
 
     now = datetime.now().astimezone().isoformat()
@@ -128,7 +128,7 @@ def generate_as4_messaging_part(messaging, document):
 
     payload_info = etree.SubElement(user_message, ns(NS2, 'PayloadInfo'))
     part_info = etree.SubElement(payload_info, ns(NS2, 'PartInfo'),
-                                 { "href": "cid:cd5d3394-0468-4c88-9af1-4de02d5121a0@beta.iola.dk" }) # FIXME: cid
+                                 { "href": doc_id })
     part_props = etree.SubElement(part_info, ns(NS2, 'PartProperties'))
     etree.SubElement(part_props, ns(NS2, 'Property'),
                      { "name": "CompressionType" }).text = 'application/gzip'
@@ -142,7 +142,7 @@ def generate_as4_message_to_post(filename):
     with open(filename, 'r') as f:
         file_contents = f.read().encode('utf-8')
 
-    envelope, messaging, body = generate_as4_envelope(file_contents)
+    envelope, messaging, body = generate_as4_envelope(file_contents, doc_id)
     #print(etree.tostring(envelope, pretty_print=True).decode('utf-8'))
 
     keyfile = "test.key.pem"
@@ -211,4 +211,4 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #extract_as4_information(smp_contents)
 
 #generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')
-post_multipart('https://phase4-controller.testbed.peppol.org/as4', 'TestFile_003__BISv3_Invoice.xml')
+post_multipart('https://phase4-controller.testbed.peppol.org/as4', 'nyt-test-data/PEPPOL_TestCase_0232_20231207T1245Z/TestFile_001__BISv3_Invoice.xml')

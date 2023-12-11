@@ -25,10 +25,11 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     key = _sign_key(keyfile, certfile, password)
 
     messaging_hash = generate_hash(messaging)
+    messaging_id = messaging.get(etree.QName(WSU_NS, 'Id'))
     body_hash = generate_hash(body)
     body_id = body.get(etree.QName(WSU_NS, 'Id'))
 
-    sig_info = signature_info(doc_id, doc_hash, body_id, body_hash, messaging.get('Id'), messaging_hash)
+    sig_info = signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash)
     #print(sig_info)
 
     ctx = xmlsec.SignatureContext()

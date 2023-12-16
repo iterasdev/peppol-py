@@ -6,6 +6,7 @@ Code based on python-zeep & py-wsee
 
 import base64
 import io
+import textwrap
 
 from lxml import etree
 from OpenSSL import crypto
@@ -24,7 +25,12 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     
     key = _sign_key(keyfile, certfile, password)
 
-    messaging_hash = generate_hash(messaging)
+    # hax hax
+    messaging_str = etree.tostring(messaging, pretty_print=True).decode('utf-8')
+    # "proper" indention
+    messaging_str = textwrap.indent(messaging_str, '    ')
+    messaging_hash = generate_hash(etree.fromstring(messaging_str))
+
     messaging_id = messaging.get(etree.QName(WSU_NS, 'Id'))
     body_hash = generate_hash(body)
     body_id = body.get(etree.QName(WSU_NS, 'Id'))
@@ -122,6 +128,9 @@ def _sign_key(keyfile, certfile, password):
     return key
 
 def _add_ref(ref_id, transform, digest_value):
+    if transform != ATTACHMENT:
+        ref_id = '#' + ref_id
+
     return """
 <ds:Reference URI="%s">
  <ds:Transforms>
@@ -143,9 +152,11 @@ def signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
 %s
 %s
 </ds:SignedInfo>
-    """ % (_add_ref(doc_id, ATTACHMENT, doc_hash),
-           _add_ref(body_id, C14N, body_hash),
-           _add_ref(messaging_id, C14N, messaging_hash))
+    """ % (
+        _add_ref(doc_id, ATTACHMENT, doc_hash),
+        _add_ref(body_id, C14N, body_hash),
+        _add_ref(messaging_id, C14N, messaging_hash)
+    )
 
 def add_data_reference(enc_key, enc_data):
     data_id = ensure_id(enc_data)

@@ -1,7 +1,7 @@
 """
 Functions for WS-Security (WSSE) signing + encrypting
 
-Code based on python-zeep & py-wsee
+Code based on python-zeep & py-wsse
 """
 
 import base64
@@ -41,12 +41,7 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     ctx = xmlsec.SignatureContext()
     ctx.key = key
 
-    xml_sig_info = etree.fromstring(sig_info.replace("<ds:SignedInfo>", "<ds:SignedInfo xmlns:ds='{}'>".format(DS_NS)))
-    et = etree.ElementTree(xml_sig_info)
-    out = io.BytesIO()
-    et.write(out, method="c14n", exclusive=True)
-
-    sign = ctx.sign_binary(out.getvalue(), xmlsec.constants.TransformRsaSha256)
+    sign = ctx.sign_binary(sig_info.encode('utf-8'), xmlsec.constants.TransformRsaSha256)
     signature_value = base64.b64encode(sign).decode('utf-8')
     #print(signature_value)
 
@@ -134,28 +129,23 @@ def _add_ref(ref_id, transform, digest_value):
     return """
 <ds:Reference URI="%s">
  <ds:Transforms>
-  <ds:Transform Algorithm="%s"/>
+  <ds:Transform Algorithm="%s"></ds:Transform>
  </ds:Transforms>
- <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+ <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>
  <ds:DigestValue>%s</ds:DigestValue>
-</ds:Reference>
-    """ % (ref_id, transform, digest_value)
+</ds:Reference>""" % (ref_id, transform, digest_value)
 
 def signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
-    return """
-<ds:SignedInfo>
+    return """<ds:SignedInfo xmlns:ds="%s" xmlns:env="%s">
  <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
-  <ec:InclusiveNamespaces xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#" PrefixList="env"/>
+  <ec:InclusiveNamespaces xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#" PrefixList="env"></ec:InclusiveNamespaces>
  </ds:CanonicalizationMethod>
- <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
-%s
-%s
-%s
-</ds:SignedInfo>
-    """ % (
-        _add_ref(doc_id, ATTACHMENT, doc_hash),
+ <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></ds:SignatureMethod>%s%s%s
+</ds:SignedInfo>""" % (
+        DS_NS, ENV_NS,
         _add_ref(body_id, C14N, body_hash),
-        _add_ref(messaging_id, C14N, messaging_hash)
+        _add_ref(messaging_id, C14N, messaging_hash),
+        _add_ref(doc_id, ATTACHMENT, doc_hash)
     )
 
 def add_data_reference(enc_key, enc_data):

@@ -1,7 +1,7 @@
 import hashlib
 from base64 import b64encode
 import io
-import zlib
+import gzip
 from lxml import etree
 
 # the payload must / will be:
@@ -21,8 +21,8 @@ def generate_gzipped_document(document):
     et = etree.ElementTree(xmldoc)
     out = io.BytesIO()
     et.write(out, method="c14n", exclusive=True)
-    return zlib.compress(out.getvalue())
+    return gzip.compress(out.getvalue())
 
 def generate_document_hash(document):
     gzip_document = generate_gzipped_document(document)
-    return [gzip_document, b64encode(hashlib.sha256(gzip_document).digest()).decode('utf-8')]
+    return [gzip_document, b64encode(hashlib.sha256(gzip_document).digest()).decode('ascii')]

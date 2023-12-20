@@ -5,7 +5,6 @@ Code based on python-zeep & py-wsse
 """
 
 import base64
-import io
 import textwrap
 
 from lxml import etree
@@ -56,64 +55,6 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     """ % (sig_info, signature_value, key_info)
 
     security.insert(1, etree.fromstring(signature))
-
-def encrypted_data_element(cid, ek_id):
-    return """<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only"><xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
- <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-   <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
-    <wsse:Reference URI="#{}"/>
-   </wsse:SecurityTokenReference>
- </ds:KeyInfo>
- <xenc:CipherData>
-  <xenc:CipherReference URI="{}">
-   <xenc:Transforms>
-    <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
-   </xenc:Transforms>
-  </xenc:CipherReference>
- </xenc:CipherData>
-</xenc:EncryptedData>""".format(ek_id, cid)
-
-def encrypt(envelope, data_id, data, certfile):
-    header = envelope.find(ns(ENV_NS, 'Header'))
-    security = header.find(ns(WSSE_NS, 'Security'))
-
-    manager = xmlsec.KeysManager()
-    key = xmlsec.Key.from_file(certfile, xmlsec.KeyFormat.CERT_PEM, None)
-    manager.add_key(key)
-
-    # EncryptedData node
-    enc_data = xmlsec.template.encrypted_data_create(
-        envelope,
-        xmlsec.constants.TransformAes128Gcm,
-        type=xmlsec.EncryptionType.ELEMENT,
-        ns='xenc',
-    )
-    xmlsec.template.encrypted_data_ensure_cipher_value(enc_data)
-    key_info = xmlsec.template.encrypted_data_ensure_key_info(enc_data, ns='ds')
-    enc_key = xmlsec.template.add_encrypted_key(key_info, xmlsec.Transform.RSA_OAEP)
-    xmlsec.template.encrypted_data_ensure_cipher_value(enc_key)
-
-    enc_ctx = xmlsec.EncryptionContext(manager)
-    enc_ctx.key = xmlsec.Key.generate(
-        xmlsec.constants.KeyDataAes, 128, xmlsec.constants.KeyDataTypeSession
-    )
-    enc_data = enc_ctx.encrypt_binary(enc_data, data)
-
-    cert_bst = create_binary_security_token(certfile)
-    security.insert(0, cert_bst)
-
-    ek_id = ensure_id(enc_key, 'EK')
-
-    # ds:KeyInfo node referencing the BinarySecurityToken
-    enc_key.insert(1, create_key_info_bst(cert_bst))
-    security.insert(1, enc_key)
-
-    # xenc:EncryptedData
-    enc_data_el = etree.fromstring(encrypted_data_element(data_id, ek_id))
-
-    add_data_reference(enc_key, enc_data_el)
-
-    security.insert(2, enc_data_el)
 
 ### HELPERS ###
 

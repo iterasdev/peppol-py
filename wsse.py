@@ -56,6 +56,49 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
 
     security.insert(1, etree.fromstring(signature))
 
+def encrypt(public_key, cipher_value, doc_id):
+    return """<wsse:BinarySecurityToken xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="G47abf010-3789-4722-bdba-fbb82ec92fff">{}</wsse:BinarySecurityToken>
+
+<xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2">
+ <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
+  <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+  <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
+ </xenc:EncryptionMethod>
+
+ <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <wsse:SecurityTokenReference>
+   <wsse:Reference URI="#G47abf010-3789-4722-bdba-fbb82ec92fff" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
+  </wsse:SecurityTokenReference>
+ </ds:KeyInfo>
+
+ <xenc:CipherData>
+  <xenc:CipherValue>{}</xenc:CipherValue>
+ </xenc:CipherData>
+
+ <xenc:ReferenceList>
+  <xenc:DataReference URI="#ED-368427a8-7b98-473f-b2c9-60421d9b38e1"/>
+ </xenc:ReferenceList>
+</xenc:EncryptedKey>
+
+<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="ED-368427a8-7b98-473f-b2c9-60421d9b38e1" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
+
+ <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
+
+ <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
+   <wsse:Reference URI="#EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2"/>
+  </wsse:SecurityTokenReference>
+ </ds:KeyInfo>
+
+ <xenc:CipherData>
+  <xenc:CipherReference URI="{}">
+   <xenc:Transforms>
+    <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
+   </xenc:Transforms>
+  </xenc:CipherReference>
+ </xenc:CipherData>
+</xenc:EncryptedData>""".format(public_key, cipher_value, doc_id)
+
 ### HELPERS ###
 
 def _sign_key(keyfile, certfile, password):

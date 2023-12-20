@@ -1,0 +1,21 @@
+<EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#">
+ <EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
+ <KeyInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+  <EncryptedKey xmlns="http://www.w3.org/2001/04/xmlenc#">
+   <EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
+     <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+     <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
+   </EncryptionMethod>
+   <KeyInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+    <KeyName/>
+   </KeyInfo>
+   <CipherData>
+    <CipherValue/>
+   </CipherData>
+  </EncryptedKey>
+ </KeyInfo>
+ <CipherData>
+  <CipherValue/>
+ </CipherData>
+</EncryptedData>
+

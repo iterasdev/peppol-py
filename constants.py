@@ -12,3 +12,5 @@ X509TOKEN = WSS_BASE + 'oasis-200401-wss-x509-token-profile-1.0#X509v3'
 NS2 = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/'
 ATTACHMENT = 'http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Signature-Transform'
 C14N = 'http://www.w3.org/2001/10/xml-exc-c14n#'
+
+STBH = 'http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader'

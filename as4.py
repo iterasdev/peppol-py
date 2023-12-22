@@ -3,7 +3,7 @@ from datetime import datetime
 from lxml import etree
 
 from xmlhelpers import ns
-from constants import NS2, ENV_NS, WSSE_NS, WSU_NS
+from constants import NS2, ENV_NS, WSSE_NS, WSU_NS, STBH
 
 def document_id():
     return 'cid:{}@beta.iola.dk'.format(uuid4())
@@ -11,13 +11,13 @@ def document_id():
 def envelope_as_string(envelope):
     return etree.tostring(envelope, pretty_print=True).decode('utf-8')
 
-def generate_as4_envelope(document, doc_id):
+def generate_as4_envelope(filename, doc_id):
     envelope = etree.Element(ns(ENV_NS, 'Envelope'), nsmap={'env': ENV_NS})
     header = etree.SubElement(envelope, ns(ENV_NS, 'Header'), nsmap={'env': ENV_NS})
 
     attribs = { etree.QName(ENV_NS, 'mustUnderstand'): "true", etree.QName(WSU_NS, "Id"): "_{}".format(uuid4()) }
     messaging = etree.SubElement(header, ns(NS2, 'Messaging'), attribs, nsmap={'ns2': NS2, 'wsu': WSU_NS})
-    generate_as4_messaging_part(messaging, document, doc_id)
+    generate_as4_messaging_part(messaging, filename, doc_id)
 
     etree.SubElement(header, ns(WSSE_NS, 'Security'),
                      { etree.QName(ENV_NS, 'mustUnderstand'): "true" },
@@ -29,7 +29,19 @@ def generate_as4_envelope(document, doc_id):
 
     return envelope, messaging, body
     
-def generate_as4_messaging_part(messaging, document, doc_id):
+def generate_as4_messaging_part(messaging, filename, doc_id):
+    file_contents = ''
+    with open(filename, 'r') as f:
+        file_contents = f.read().encode('utf-8')
+
+    document = etree.fromstring(file_contents)
+    header = document.find(ns(STBH, 'StandardBusinessDocumentHeader'))
+
+    original_sender = header.find(ns(STBH, 'Sender')).find(ns(STBH, 'Identifier')).text
+    final_recipient = header.find(ns(STBH, 'Receiver')).find(ns(STBH, 'Identifier')).text
+    from_id = original_sender.split(':')[1]
+    to_id = final_recipient.split(':')[1]
+
     user_message = etree.SubElement(messaging, ns(NS2, 'UserMessage'))
 
     now = datetime.now().astimezone().isoformat()
@@ -40,15 +52,13 @@ def generate_as4_messaging_part(messaging, document, doc_id):
     party_info = etree.SubElement(user_message, ns(NS2, 'PartyInfo'))
 
     from_info = etree.SubElement(party_info, ns(NS2, 'From'))
-    # FIXME: from doc
     etree.SubElement(from_info, ns(NS2, 'PartyId'),
-                     { "type": "urn:fdc:peppol.eu:2017:identifiers:ap" }).text='PDK000592'
+                     { "type": "urn:fdc:peppol.eu:2017:identifiers:ap" }).text=from_id
     etree.SubElement(from_info, ns(NS2, 'Role')).text = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator'
     
     to_info = etree.SubElement(party_info, ns(NS2, 'To'))
-    # FIXME: from service description
     etree.SubElement(to_info, ns(NS2, 'PartyId'),
-                     { "type": "urn:fdc:peppol.eu:2017:identifiers:ap" }).text='PGD000005'
+                     { "type": "urn:fdc:peppol.eu:2017:identifiers:ap" }).text=to_id
     etree.SubElement(to_info, ns(NS2, 'Role')).text = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder'
 
     collab_info = etree.SubElement(user_message, ns(NS2, 'CollaborationInfo'))
@@ -60,9 +70,9 @@ def generate_as4_messaging_part(messaging, document, doc_id):
 
     message_props = etree.SubElement(user_message, ns(NS2, 'MessageProperties'))
     etree.SubElement(message_props, ns(NS2, 'Property'),
-                     { "name": "originalSender", "type": "iso6523-actorid-upis" }).text = '0096:pdk000592' # FIXME: from doc
+                     { "name": "originalSender", "type": "iso6523-actorid-upis" }).text = original_sender
     etree.SubElement(message_props, ns(NS2, 'Property'),
-                     { "name": "finalRecipient", "type": "iso6523-actorid-upis" }).text = '9922:ngtbcntrlp1001' # FIXME: from doc
+                     { "name": "finalRecipient", "type": "iso6523-actorid-upis" }).text = final_recipient
 
     payload_info = etree.SubElement(user_message, ns(NS2, 'PayloadInfo'))
     part_info = etree.SubElement(payload_info, ns(NS2, 'PartInfo'),

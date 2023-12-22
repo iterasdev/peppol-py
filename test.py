@@ -10,19 +10,17 @@ from email.mime.application import MIMEApplication
 import http.client as http_client
 import logging
 
+# params
+keyfile = "test.key.pem"
+certfile = "cert.pem"
+their_cert = "server-cert.pem"
+password = ''
+filename = 'PEPPOL_TestCase_0232_20231222T1138Z/TestFile_001__BISv3_Invoice.xml'
+
 def generate_as4_message_to_post(filename):
     doc_id = document_id()
     
-    file_contents = ''
-    with open(filename, 'r') as f:
-        file_contents = f.read().encode('utf-8')
-
-    envelope, messaging, body = generate_as4_envelope(file_contents, doc_id)
-
-    keyfile = "test.key.pem"
-    certfile = "cert.pem"
-    their_cert = "server-cert.pem"
-    password = ''
+    envelope, messaging, body = generate_as4_envelope(filename, doc_id)
 
     cipher_value, encrypted_gzip, document_hash = encrypt_using_external_xmlsec(filename, their_cert)
 
@@ -85,4 +83,4 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')
 #url = 'https://oxalis.beta.iola.dk/as4'
 url = 'https://phase4-controller.testbed.peppol.org/as4'
-post_multipart(url, 'PEPPOL_TestCase_0232_20231222T0948Z/TestFile_001__BISv3_Invoice.xml')
+post_multipart(url, filename)

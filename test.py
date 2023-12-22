@@ -181,13 +181,11 @@ def generate_as4_message_to_post(filename):
     password = ''
 
     sign(envelope, doc_id, document_hash, body, messaging, keyfile, certfile, password)
+    encrypt(envelope, their_cert, cipher_value, doc_id)
 
     doc = etree.tostring(envelope, pretty_print=True).decode('utf-8')
 
-    # add encryption element from external xmlsec
-    doc = doc.replace('<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" env:mustUnderstand="true">', '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" env:mustUnderstand="true">' + encrypt(their_cert, cipher_value, doc_id))
-
-    #print(doc)
+    print(doc)
     return [doc, encrypted_gzip]
 
 def enable_logging():
@@ -241,4 +239,4 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')
 #url = 'https://oxalis.beta.iola.dk/as4'
 url = 'https://phase4-controller.testbed.peppol.org/as4'
-post_multipart(url, 'PEPPOL_TestCase_0232_20231222T0820Z/TestFile_001__BISv3_Invoice.xml')
+post_multipart(url, 'PEPPOL_TestCase_0232_20231222T0948Z/TestFile_001__BISv3_Invoice.xml')

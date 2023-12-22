@@ -58,47 +58,20 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
 
     security.insert(1, etree.fromstring(signature))
 
-def encrypt(certfile, cipher_value, doc_id):
+def encrypt(envelope, certfile, cipher_value, doc_id):
+    header = envelope.find(ns(ENV_NS, 'Header'))
+    security = header.find(ns(WSSE_NS, 'Security'))
+
     security_token = _create_binary_security_token(certfile)
     key_info = _create_key_info_bst(security_token)
 
-    return """{}
+    security.insert(0, security_token)
 
-<xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2">
- <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
-  <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-  <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
- </xenc:EncryptionMethod>
+    encrypted_key = _create_encrypted_key(key_info, cipher_value)
+    security.insert(1, etree.fromstring(encrypted_key))
 
- {}
-
- <xenc:CipherData>
-  <xenc:CipherValue>{}</xenc:CipherValue>
- </xenc:CipherData>
-
- <xenc:ReferenceList>
-  <xenc:DataReference URI="#ED-368427a8-7b98-473f-b2c9-60421d9b38e1"/>
- </xenc:ReferenceList>
-</xenc:EncryptedKey>
-
-<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="ED-368427a8-7b98-473f-b2c9-60421d9b38e1" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
-
- <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
-
- <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-  <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
-   <wsse:Reference URI="#EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2"/>
-  </wsse:SecurityTokenReference>
- </ds:KeyInfo>
-
- <xenc:CipherData>
-  <xenc:CipherReference URI="{}">
-   <xenc:Transforms>
-    <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
-   </xenc:Transforms>
-  </xenc:CipherReference>
- </xenc:CipherData>
-</xenc:EncryptedData>""".format(etree.tostring(security_token), key_info, cipher_value, doc_id)
+    encrypted_data = _create_encrypted_data(doc_id)
+    security.insert(2, etree.fromstring(encrypted_data))
 
 ### HELPERS ###
 
@@ -145,7 +118,7 @@ def _create_key_info_bst(security_token):
     reference.set('ValueType', security_token.get('ValueType'))
     reference.set('URI', '#%s' % bst_id)
 
-    return etree.tostring(key_info)
+    return etree.tostring(key_info).decode('utf-8')
 
 def _create_binary_security_token(certfile):
     node = etree.Element(ns(WSSE_NS, 'BinarySecurityToken'))
@@ -157,3 +130,43 @@ def _create_binary_security_token(certfile):
         node.text = base64.b64encode(crypto.dump_certificate(crypto.FILETYPE_ASN1, cert))
 
     return node
+
+def _create_encrypted_key(key_info, cipher_value):
+    return """
+<xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2">
+ <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
+  <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+  <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
+ </xenc:EncryptionMethod>
+
+ {}
+
+ <xenc:CipherData>
+  <xenc:CipherValue>{}</xenc:CipherValue>
+ </xenc:CipherData>
+
+ <xenc:ReferenceList>
+  <xenc:DataReference URI="#ED-368427a8-7b98-473f-b2c9-60421d9b38e1"/>
+ </xenc:ReferenceList>
+</xenc:EncryptedKey>""".format(key_info, cipher_value)
+
+def _create_encrypted_data(doc_id):
+    return """
+<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="ED-368427a8-7b98-473f-b2c9-60421d9b38e1" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
+
+ <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
+
+ <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
+   <wsse:Reference URI="#EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2"/>
+  </wsse:SecurityTokenReference>
+ </ds:KeyInfo>
+
+ <xenc:CipherData>
+  <xenc:CipherReference URI="{}">
+   <xenc:Transforms>
+    <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
+   </xenc:Transforms>
+  </xenc:CipherReference>
+ </xenc:CipherData>
+</xenc:EncryptedData>""".format(doc_id)

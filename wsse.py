@@ -7,16 +7,15 @@ Code based on python-zeep & py-wsse
 import base64
 import textwrap
 import os
-import hashlib
 
 from lxml import etree
 from OpenSSL import crypto
 import xmlsec
-from base64 import b64encode, b64decode
+from base64 import b64decode
 
 from constants import BASE64B, X509TOKEN, DS_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N, WSU_NS, ENC_NS
 from xmlhelpers import ensure_id, ns
-from hashing import generate_hash
+from hashing import generate_hash, hash_file
 
 # We need to manually "craft" a signature because xmlsec doesn't
 # properly handle external content. It does support cid and tries to
@@ -85,9 +84,7 @@ def encrypt_using_external_xmlsec(filename, their_cert):
 
     target += '.gz'
 
-    with open(target, 'rb') as f:
-        file_contents = f.read()
-        document_hash = b64encode(hashlib.sha256(file_contents).digest()).decode('ascii')
+    document_hash = hash_file(target)
 
     os.system("~/Downloads/xmlsec1-1.3.2/install/bin/xmlsec1 --encrypt --pubkey-cert-pem {} --session-key aes-128 --binary-data {} --output {} --verbose --lax-key-search encryption.xml".format(their_cert, target, xmlsec_result))
 

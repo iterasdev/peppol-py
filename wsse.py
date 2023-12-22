@@ -11,7 +11,7 @@ from lxml import etree
 from OpenSSL import crypto
 import xmlsec
 
-from constants import BASE64B, X509TOKEN, DS_NS, ENC_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N, WSU_NS
+from constants import BASE64B, X509TOKEN, DS_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N, WSU_NS
 from xmlhelpers import ensure_id, ns
 from hashing import generate_hash
 
@@ -131,20 +131,6 @@ def signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
         _add_ref(messaging_id, C14N, messaging_hash),
         _add_ref(doc_id, ATTACHMENT, doc_hash)
     )
-
-def add_data_reference(enc_key, enc_data):
-    data_id = ensure_id(enc_data)
-    ref_list = ensure_reference_list(enc_key)
-
-    data_ref = etree.SubElement(ref_list, ns(ENC_NS, 'DataReference'))
-    data_ref.set('URI', '#' + data_id)
-    return data_ref
-
-def ensure_reference_list(encrypted_key):
-    ref_list = encrypted_key.find(ns(ENC_NS, 'ReferenceList'))
-    if ref_list is None:
-        ref_list = etree.SubElement(encrypted_key, ns(ENC_NS, 'ReferenceList'))
-    return ref_list
 
 def create_key_info_bst(security_token):
     key_info = etree.Element(ns(DS_NS, 'KeyInfo'), nsmap={'ds': DS_NS})

@@ -5,13 +5,10 @@ import urllib.parse
 from lxml import etree
 from uuid import uuid4
 from datetime import datetime
-import re
-import os
-from base64 import b64encode, b64decode
 
-from wsse import encrypt, sign
+from wsse import encrypt_using_external_xmlsec, encrypt, sign
 from xmlhelpers import ns
-from constants import NS2, ENV_NS, WSSE_NS, WSU_NS, ENC_NS
+from constants import NS2, ENV_NS, WSSE_NS, WSU_NS
 
 import requests
 from email.mime.multipart import MIMEMultipart
@@ -137,32 +134,6 @@ def generate_as4_messaging_part(messaging, document, doc_id):
                      { "name": "MimeType" }).text = 'application/xml'
     
 doc_id = 'cid:{}@beta.iola.dk'.format(uuid4())
-
-def encrypt_using_external_xmlsec(filename, their_cert):
-    base = os.path.basename(filename)
-    target = '/tmp/' + base
-    xmlsec_result = '/tmp/xmlsec-result.xml'
-
-    os.system("cp {} {} && gzip -f {}".format(filename, target, target))
-
-    target += '.gz'
-
-    with open(target, 'rb') as f:
-        file_contents = f.read()
-        document_hash = b64encode(hashlib.sha256(file_contents).digest()).decode('ascii')
-
-    os.system("~/Downloads/xmlsec1-1.3.2/install/bin/xmlsec1 --encrypt --pubkey-cert-pem {} --session-key aes-128 --binary-data {} --output {} --verbose --lax-key-search encryption.xml".format(their_cert, target, xmlsec_result))
-
-    with open(xmlsec_result, 'r') as f:
-        file_contents = f.read()
-        xmlsec_xml = etree.fromstring(file_contents)
-
-        cipher_values = [a.text for a in xmlsec_xml.iter() if a.tag == ns(ENC_NS, 'CipherValue')]
-        cipher_value = cipher_values[0].replace('\n', '')
-        encrypted_gzip_b64 = cipher_values[1].replace('\n', '')
-        encrypted_gzip = b64decode(encrypted_gzip_b64.encode('ascii'))
-
-    return [cipher_value, encrypted_gzip, document_hash]
 
 def generate_as4_message_to_post(filename):
     file_contents = ''

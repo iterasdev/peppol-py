@@ -174,7 +174,7 @@ def generate_as4_message_to_post(filename):
 
     keyfile = "test.key.pem"
     certfile = "cert.pem"
-    their_cert = "cert.pem" # "server-cert.pem"
+    their_cert = "server-cert.pem"
 
     cipher_value, encrypted_gzip, document_hash = encrypt_using_external_xmlsec(filename, their_cert)
 
@@ -184,13 +184,8 @@ def generate_as4_message_to_post(filename):
 
     doc = etree.tostring(envelope, pretty_print=True).decode('utf-8')
 
-    with open(their_cert, 'r') as f:
-        file_contents = f.read()
-        m = re.findall("----BEGIN CERTIFICATE-----(.*)-----END CERTIFICATE-----", file_contents, flags=re.DOTALL)
-        public_key = m[0].strip()
-
     # add encryption element from external xmlsec
-    doc = doc.replace('<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" env:mustUnderstand="true">', '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" env:mustUnderstand="true">' + encrypt(public_key, cipher_value, doc_id))
+    doc = doc.replace('<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" env:mustUnderstand="true">', '<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" env:mustUnderstand="true">' + encrypt(their_cert, cipher_value, doc_id))
 
     #print(doc)
     return [doc, encrypted_gzip]
@@ -244,6 +239,6 @@ receiver = '9922:NGTBCNTRLP1001' # from test certification file
 #extract_as4_information(smp_contents)
 
 #generate_as4_message_to_post('TestFile_003__BISv3_Invoice.xml')
-url = 'https://oxalis.beta.iola.dk/as4'
-#url = 'https://phase4-controller.testbed.peppol.org/as4'
-post_multipart(url, 'nyt-test-data/PEPPOL_TestCase_0232_20231207T1245Z/TestFile_001__BISv3_Invoice.xml')
+#url = 'https://oxalis.beta.iola.dk/as4'
+url = 'https://phase4-controller.testbed.peppol.org/as4'
+post_multipart(url, 'PEPPOL_TestCase_0232_20231222T0820Z/TestFile_001__BISv3_Invoice.xml')

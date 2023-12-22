@@ -15,36 +15,38 @@ from constants import BASE64B, X509TOKEN, DS_NS, ENV_NS, WSSE_NS, ATTACHMENT, C1
 from xmlhelpers import ensure_id, ns
 from hashing import generate_hash
 
+# We need to manually "craft" a signature because xmlsec doesn't
+# properly handle external content. It does support cid and tries to
+# resolve it to a file in the current working directory, but this only
+# works if the file referenced is an xml file. This standard makes no
+# sense, why would you use a "cannonical" (c14n) encoding before
+# gzipping, if gzip itself is implementation specific?
 def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, password):
     header = envelope.find(ns(ENV_NS, 'Header'))
     security = header.find(ns(WSSE_NS, 'Security'))
 
-    security_token = create_binary_security_token(certfile)
+    security_token = _create_binary_security_token(certfile)
     security.insert(0, security_token)
     
-    key = _sign_key(keyfile, certfile, password)
-
     # hax hax
     messaging_str = etree.tostring(messaging, pretty_print=True).decode('utf-8')
     # "proper" indention
     messaging_str = textwrap.indent(messaging_str, '    ')
     messaging_hash = generate_hash(etree.fromstring(messaging_str))
-
     messaging_id = messaging.get(etree.QName(WSU_NS, 'Id'))
+
     body_hash = generate_hash(body)
     body_id = body.get(etree.QName(WSU_NS, 'Id'))
 
-    sig_info = signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash)
-    #print(sig_info)
+    signature_info = _signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash)
 
     ctx = xmlsec.SignatureContext()
-    ctx.key = key
+    ctx.key = _sign_key(keyfile, certfile, password)
 
-    sign = ctx.sign_binary(sig_info.encode('utf-8'), xmlsec.constants.TransformRsaSha256)
+    sign = ctx.sign_binary(signature_info.encode('utf-8'), xmlsec.constants.TransformRsaSha256)
     signature_value = base64.b64encode(sign).decode('utf-8')
-    #print(signature_value)
 
-    key_info = etree.tostring(create_key_info_bst(security_token)).decode('utf-8')
+    key_info = _create_key_info_bst(security_token)
 
     signature = """
 <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
@@ -52,12 +54,15 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
 <ds:SignatureValue>%s</ds:SignatureValue>
 %s
 </ds:Signature>
-    """ % (sig_info, signature_value, key_info)
+    """ % (signature_info, signature_value, key_info)
 
     security.insert(1, etree.fromstring(signature))
 
-def encrypt(public_key, cipher_value, doc_id):
-    return """<wsse:BinarySecurityToken xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3" wsu:Id="G47abf010-3789-4722-bdba-fbb82ec92fff">{}</wsse:BinarySecurityToken>
+def encrypt(certfile, cipher_value, doc_id):
+    security_token = _create_binary_security_token(certfile)
+    key_info = _create_key_info_bst(security_token)
+
+    return """{}
 
 <xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2">
  <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
@@ -65,11 +70,7 @@ def encrypt(public_key, cipher_value, doc_id):
   <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
  </xenc:EncryptionMethod>
 
- <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-  <wsse:SecurityTokenReference>
-   <wsse:Reference URI="#G47abf010-3789-4722-bdba-fbb82ec92fff" ValueType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3"/>
-  </wsse:SecurityTokenReference>
- </ds:KeyInfo>
+ {}
 
  <xenc:CipherData>
   <xenc:CipherValue>{}</xenc:CipherValue>
@@ -97,7 +98,7 @@ def encrypt(public_key, cipher_value, doc_id):
    </xenc:Transforms>
   </xenc:CipherReference>
  </xenc:CipherData>
-</xenc:EncryptedData>""".format(public_key, cipher_value, doc_id)
+</xenc:EncryptedData>""".format(etree.tostring(security_token), key_info, cipher_value, doc_id)
 
 ### HELPERS ###
 
@@ -119,7 +120,7 @@ def _add_ref(ref_id, transform, digest_value):
  <ds:DigestValue>%s</ds:DigestValue>
 </ds:Reference>""" % (ref_id, transform, digest_value)
 
-def signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
+def _signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
     return """<ds:SignedInfo xmlns:ds="%s" xmlns:env="%s">
  <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
   <ec:InclusiveNamespaces xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#" PrefixList="env"></ec:InclusiveNamespaces>
@@ -132,7 +133,7 @@ def signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging
         _add_ref(doc_id, ATTACHMENT, doc_hash)
     )
 
-def create_key_info_bst(security_token):
+def _create_key_info_bst(security_token):
     key_info = etree.Element(ns(DS_NS, 'KeyInfo'), nsmap={'ds': DS_NS})
 
     sec_token_ref = etree.SubElement(key_info, ns(WSSE_NS, 'SecurityTokenReference'))
@@ -144,9 +145,9 @@ def create_key_info_bst(security_token):
     reference.set('ValueType', security_token.get('ValueType'))
     reference.set('URI', '#%s' % bst_id)
 
-    return key_info
+    return etree.tostring(key_info)
 
-def create_binary_security_token(certfile):
+def _create_binary_security_token(certfile):
     node = etree.Element(ns(WSSE_NS, 'BinarySecurityToken'))
     node.set('EncodingType', BASE64B)
     node.set('ValueType', X509TOKEN)

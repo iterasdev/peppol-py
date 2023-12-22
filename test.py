@@ -1,7 +1,3 @@
-import hashlib
-import dns.resolver
-import urllib.request
-import urllib.parse
 from lxml import etree
 from uuid import uuid4
 from datetime import datetime
@@ -18,58 +14,6 @@ from email.mime.application import MIMEApplication
 # logging
 import http.client as http_client
 import logging
-
-sml_server = 'edelivery.tech.ec.europa.eu'
-sml_server = 'acc.edelivery.tech.ec.europa.eu' # test
-
-# SML: receiver -> domain (DNS)
-# SMP: domain + path -> xml with service descriptions
-
-def get_domain_using_http(receiver):
-    smp_id = 'B-' + hashlib.md5((receiver.lower()).encode("utf-8")).hexdigest()
-    return smp_id + '.iso6523-actorid-upis.' + sml_server
-
-def get_domain_using_sml(receiver):
-    smp_id = 'B-' + hashlib.md5((receiver.lower()).encode("utf-8")).hexdigest()
-    name = smp_id + '.iso6523-actorid-upis.' + sml_server
-    print(name)
-    answers = dns.resolver.resolve(name, 'CNAME')
-    domain = str(answers[0])
-    if domain[-1] == '.':
-        return domain[0:-1]
-    else:
-        return domain
-
-def get_smp_info(domain, receiver):
-    # all the available interfaces (invoice, credit note etc.)
-    url = 'http://' + domain + "/iso6523-actorid-upis::" + receiver
-    print("looking up", url)
-    contents = urllib.request.urlopen(url).read()
-    print(contents)
-    return contents
-
-invoice_end = urllib.parse.quote("billing:3.0::2.1")
-
-def find_invoice_smp_document(smp_contents):
-    root = etree.fromstring(smp_contents)
-    for child in root:
-        for el in child:
-            if el.get('href').endswith(invoice_end):
-                return el.get('href')
-
-def extract_as4_information(smp_contents):
-    invoice_url = find_invoice_smp_document(smp_contents)
-    print("invoice url:", invoice_url)
-    invoice_smp = urllib.request.urlopen(invoice_url).read()
-    print(invoice_smp)
-    root = etree.fromstring(invoice_smp)
-    id = root.findall(".//{*}ParticipantIdentifier")[0].text
-    print("id", id)
-    as4_endpoint = root.findall(".//{*}EndpointReference")[0][0].text
-    print("as4_endpoint", as4_endpoint)
-    certificate = root.findall(".//{*}Certificate")[0].text
-    print("cert:")
-    print(certificate)
 
 def generate_as4_envelope(document, doc_id):
     envelope = etree.Element(ns(ENV_NS, 'Envelope'), nsmap={'env': ENV_NS})

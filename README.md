@@ -10,15 +10,15 @@ encryption. Version 1.3 is needed for the rsa oaep aes128 gcm
 encryption used in peppol. The python bindings are not working with
 that version so we use xmlsec 1.3 as an external binary.
 
-The protocol should be relatively simple:
+The protocol *should* be relatively simple:
  - Generate a transfer document with:
    - UserMessage describing the sender and receiver
    - Empty body
    - The gzipped actual document as an attachment
  - Hash the 3 elements and sign that.
  - Encrypt the gzipped attachment for the intended receiver
- - POST the document with signature and encryption info including the
-   encrypted attachent as multipart mime to the AS4 endpoint
+ - POST the transfer document with signature and encryption info, with
+   the encrypted attachent as a multipart mime to the AS4 endpoint
 
 The implementation includes support for using the SML and SMP protocol
 for finding the AS4 endpoint of the receiver.

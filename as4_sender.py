@@ -10,10 +10,11 @@ import logging
 from wsse import encrypt_using_external_xmlsec, encrypt, sign
 from as4 import envelope_as_string, generate_as4_envelope, document_id
 
-def post_multipart(url, filename, keyfile, password, certfile, their_cert):
+def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_cert):
     enable_logging()
 
-    document, gzip, doc_id = generate_as4_message_to_post(filename, keyfile, password, certfile, their_cert)
+    document, gzip, doc_id = generate_as4_message_to_post(filename, xmlsec_path, keyfile,
+                                                          password, certfile, their_cert)
 
     related = MIMEMultipart('related')
 
@@ -35,12 +36,12 @@ def post_multipart(url, filename, keyfile, password, certfile, their_cert):
     r = requests.post(url, data=body, headers=headers)
     print(r.text)
 
-def generate_as4_message_to_post(filename, keyfile, password, certfile, their_cert):
+def generate_as4_message_to_post(filename, xmlsec_path, keyfile, password, certfile, their_cert):
     doc_id = document_id()
     
     envelope, messaging, body = generate_as4_envelope(filename, doc_id)
 
-    cipher_value, encrypted_gzip, document_hash = encrypt_using_external_xmlsec(filename, their_cert)
+    cipher_value, encrypted_gzip, document_hash = encrypt_using_external_xmlsec(xmlsec_path, filename, their_cert)
 
     sign(envelope, doc_id, document_hash, body, messaging, keyfile, certfile, password)
     encrypt(envelope, their_cert, cipher_value, doc_id)

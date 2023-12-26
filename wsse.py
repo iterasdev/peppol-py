@@ -75,7 +75,7 @@ def encrypt(envelope, certfile, cipher_value, doc_id):
     encrypted_data = _create_encrypted_data(doc_id)
     security.insert(2, etree.fromstring(encrypted_data))
 
-def encrypt_using_external_xmlsec(filename, their_cert):
+def encrypt_using_external_xmlsec(xmlsec_path, filename, their_cert):
     base = os.path.basename(filename)
     target = '/tmp/' + base
     xmlsec_result = '/tmp/xmlsec-result.xml'
@@ -86,7 +86,7 @@ def encrypt_using_external_xmlsec(filename, their_cert):
 
     document_hash = hash_file(target)
 
-    os.system("~/Downloads/xmlsec1-1.3.2/install/bin/xmlsec1 --encrypt --pubkey-cert-pem {} --session-key aes-128 --binary-data {} --output {} --verbose --lax-key-search encryption.xml".format(their_cert, target, xmlsec_result))
+    os.system("{} --encrypt --pubkey-cert-pem {} --session-key aes-128 --binary-data {} --output {} --verbose --lax-key-search encryption.xml".format(xmlsec_path, their_cert, target, xmlsec_result))
 
     with open(xmlsec_result, 'r') as f:
         file_contents = f.read()

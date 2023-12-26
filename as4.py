@@ -30,11 +30,7 @@ def generate_as4_envelope(filename, doc_id):
     return envelope, messaging, body
     
 def generate_as4_messaging_part(messaging, filename, doc_id):
-    file_contents = ''
-    with open(filename, 'r') as f:
-        file_contents = f.read().encode('utf-8')
-
-    document = etree.fromstring(file_contents)
+    document = etree.parse(filename)
     header = document.find(ns(STBH, 'StandardBusinessDocumentHeader'))
 
     original_sender = header.find(ns(STBH, 'Sender')).find(ns(STBH, 'Identifier')).text

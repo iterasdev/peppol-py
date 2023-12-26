@@ -15,7 +15,7 @@ def generate_as4_envelope(filename, doc_id):
     envelope = etree.Element(ns(ENV_NS, 'Envelope'), nsmap={'env': ENV_NS})
     header = etree.SubElement(envelope, ns(ENV_NS, 'Header'), nsmap={'env': ENV_NS})
 
-    attribs = { etree.QName(ENV_NS, 'mustUnderstand'): "true", etree.QName(WSU_NS, "Id"): "_{}".format(uuid4()) }
+    attribs = { etree.QName(ENV_NS, 'mustUnderstand'): "true", etree.QName(WSU_NS, "Id"): "messaging" }
     messaging = etree.SubElement(header, ns(NS2, 'Messaging'), attribs, nsmap={'ns2': NS2, 'wsu': WSU_NS})
     generate_as4_messaging_part(messaging, filename, doc_id)
 
@@ -24,7 +24,7 @@ def generate_as4_envelope(filename, doc_id):
                      nsmap={'wsse': WSSE_NS})
 
     body = etree.SubElement(envelope, ns(ENV_NS, 'Body'),
-                            { etree.QName(WSU_NS, 'Id'): "_{}".format(uuid4()) },
+                            { etree.QName(WSU_NS, 'Id'): "body" },
                             nsmap={'env': ENV_NS, 'wsu': WSU_NS})
 
     return envelope, messaging, body

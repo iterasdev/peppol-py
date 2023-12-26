@@ -14,7 +14,7 @@ import xmlsec
 from base64 import b64decode
 
 from constants import BASE64B, X509TOKEN, DS_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N, WSU_NS, ENC_NS
-from xmlhelpers import ensure_id, ns
+from xmlhelpers import ns
 from hashing import generate_hash, hash_file
 
 # We need to manually "craft" a signature because xmlsec doesn't
@@ -27,7 +27,7 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     header = envelope.find(ns(ENV_NS, 'Header'))
     security = header.find(ns(WSSE_NS, 'Security'))
 
-    security_token = _create_binary_security_token(certfile)
+    security_token = _create_binary_security_token(certfile, 'signkey')
     security.insert(0, security_token)
     
     # hax hax
@@ -64,7 +64,7 @@ def encrypt(envelope, certfile, cipher_value, doc_id):
     header = envelope.find(ns(ENV_NS, 'Header'))
     security = header.find(ns(WSSE_NS, 'Security'))
 
-    security_token = _create_binary_security_token(certfile)
+    security_token = _create_binary_security_token(certfile, 'encryptkey')
     key_info = _create_key_info_bst(security_token)
 
     security.insert(0, security_token)
@@ -139,15 +139,16 @@ def _create_key_info_bst(security_token):
     sec_token_ref.set(ns(WSSE_NS, 'TokenType'), security_token.get('ValueType'))
 
     # reference BinarySecurityToken
-    bst_id = ensure_id(security_token, 'BST')
+    bst_id = security_token.get(etree.QName(WSU_NS, 'Id'))
     reference = etree.SubElement(sec_token_ref, ns(WSSE_NS, 'Reference'))
     reference.set('ValueType', security_token.get('ValueType'))
     reference.set('URI', '#%s' % bst_id)
 
     return etree.tostring(key_info).decode('utf-8')
 
-def _create_binary_security_token(certfile):
-    node = etree.Element(ns(WSSE_NS, 'BinarySecurityToken'))
+def _create_binary_security_token(certfile, id):
+    attribs = { etree.QName(WSU_NS, "Id"): id }
+    node = etree.Element(ns(WSSE_NS, 'BinarySecurityToken'), attribs, nsmap={'wsu': WSU_NS})
     node.set('EncodingType', BASE64B)
     node.set('ValueType', X509TOKEN)
 
@@ -159,7 +160,7 @@ def _create_binary_security_token(certfile):
 
 def _create_encrypted_key(key_info, cipher_value):
     return """
-<xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2">
+<xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="encryptedkey">
  <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
   <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
   <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
@@ -172,19 +173,19 @@ def _create_encrypted_key(key_info, cipher_value):
  </xenc:CipherData>
 
  <xenc:ReferenceList>
-  <xenc:DataReference URI="#ED-368427a8-7b98-473f-b2c9-60421d9b38e1"/>
+  <xenc:DataReference URI="#encrypteddata"/>
  </xenc:ReferenceList>
 </xenc:EncryptedKey>""".format(key_info, cipher_value)
 
 def _create_encrypted_data(doc_id):
     return """
-<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="ED-368427a8-7b98-473f-b2c9-60421d9b38e1" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
+<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="encrypteddata" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
 
  <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
 
  <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
   <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
-   <wsse:Reference URI="#EK-82aea516-fe2f-44d6-b7a8-3d66d1ff2da2"/>
+   <wsse:Reference URI="#encryptedkey"/>
   </wsse:SecurityTokenReference>
  </ds:KeyInfo>
 

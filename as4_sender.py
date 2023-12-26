@@ -26,7 +26,7 @@ def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, thei
 
     mt = MIMEApplication(gzip, "gzip")
     mt.add_header("Content-Transfer-Encoding", "Binary")
-    mt.add_header("Content-ID", '<' + doc_id[4:] + '>')
+    mt.add_header("Content-ID", f'<{doc_id[4:]}>')
     related.attach(mt)
 
     # java needs CRLF
@@ -38,7 +38,7 @@ def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, thei
 
 def generate_as4_message_to_post(filename, xmlsec_path, keyfile, password, certfile, their_cert):
     doc_id = document_id()
-    
+
     envelope, messaging, body = generate_as4_envelope(filename, doc_id)
 
     cipher_value, encrypted_gzip, document_hash = encrypt_using_external_xmlsec(xmlsec_path, filename, their_cert)

@@ -6,7 +6,7 @@ from xmlhelpers import ns
 from constants import NS2, ENV_NS, WSSE_NS, WSU_NS, STBH
 
 def document_id():
-    return 'cid:{}@beta.iola.dk'.format(uuid4())
+    return f'cid:{uuid4()}@beta.iola.dk'
 
 def envelope_as_string(envelope):
     return etree.tostring(envelope, pretty_print=True).decode('utf-8')
@@ -42,8 +42,8 @@ def generate_as4_messaging_part(messaging, filename, doc_id):
 
     now = datetime.now().astimezone().isoformat()
     message_info = etree.SubElement(user_message, ns(NS2, 'MessageInfo'))
-    etree.SubElement(message_info, ns(NS2, 'Timestamp')).text='{}'.format(now)
-    etree.SubElement(message_info, ns(NS2, 'MessageId')).text='{}@beta.iola.dk'.format(uuid4())
+    etree.SubElement(message_info, ns(NS2, 'Timestamp')).text=f'{now}'
+    etree.SubElement(message_info, ns(NS2, 'MessageId')).text=f'{uuid4()}@beta.iola.dk'
 
     party_info = etree.SubElement(user_message, ns(NS2, 'PartyInfo'))
 
@@ -62,7 +62,7 @@ def generate_as4_messaging_part(messaging, filename, doc_id):
     etree.SubElement(collab_info, ns(NS2, 'Service'),
                      { "type": "cenbii-procid-ubl" }).text = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'
     etree.SubElement(collab_info, ns(NS2, 'Action')).text = 'busdox-docid-qns::urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1'
-    etree.SubElement(collab_info, ns(NS2, 'ConversationId')).text = '{}@beta.iola.dk'.format(uuid4())
+    etree.SubElement(collab_info, ns(NS2, 'ConversationId')).text = f'{uuid4()}@beta.iola.dk'
 
     message_props = etree.SubElement(user_message, ns(NS2, 'MessageProperties'))
     etree.SubElement(message_props, ns(NS2, 'Property'),

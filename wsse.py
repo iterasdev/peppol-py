@@ -29,7 +29,7 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
 
     security_token = _create_binary_security_token(certfile, 'signkey')
     security.insert(0, security_token)
-    
+
     # hax hax
     messaging_str = etree.tostring(messaging, pretty_print=True).decode('utf-8')
     # "proper" indention
@@ -50,13 +50,12 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
 
     key_info = _create_key_info_bst(security_token)
 
-    signature = """
-<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-%s
-<ds:SignatureValue>%s</ds:SignatureValue>
-%s
-</ds:Signature>
-    """ % (signature_info, signature_value, key_info)
+    signature = f"""
+<ds:Signature xmlns:ds="{DS_NS}">
+{signature_info}
+<ds:SignatureValue>{signature_value}</ds:SignatureValue>
+{key_info}
+</ds:Signature>"""
 
     security.insert(1, etree.fromstring(signature))
 
@@ -80,13 +79,13 @@ def encrypt_using_external_xmlsec(xmlsec_path, filename, their_cert):
     target = '/tmp/' + base
     xmlsec_result = '/tmp/xmlsec-result.xml'
 
-    os.system("cp {} {} && gzip -f {}".format(filename, target, target))
+    os.system(f"cp {filename} {target} && gzip -f {target}")
 
     target += '.gz'
 
     document_hash = hash_file(target)
 
-    os.system("{} --encrypt --pubkey-cert-pem {} --session-key aes-128 --binary-data {} --output {} --verbose --lax-key-search encryption.xml".format(xmlsec_path, their_cert, target, xmlsec_result))
+    os.system(f"{xmlsec_path} --encrypt --pubkey-cert-pem {their_cert} --session-key aes-128 --binary-data {target} --output {xmlsec_result} --verbose --lax-key-search encryption.xml")
 
     with open(xmlsec_result, 'r') as f:
         file_contents = f.read()
@@ -110,23 +109,22 @@ def _add_ref(ref_id, transform, digest_value):
     if transform != ATTACHMENT:
         ref_id = '#' + ref_id
 
-    return """
-<ds:Reference URI="%s">
+    return f"""
+<ds:Reference URI="{ref_id}">
  <ds:Transforms>
-  <ds:Transform Algorithm="%s"></ds:Transform>
+  <ds:Transform Algorithm="{transform}"></ds:Transform>
  </ds:Transforms>
  <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>
- <ds:DigestValue>%s</ds:DigestValue>
-</ds:Reference>""" % (ref_id, transform, digest_value)
+ <ds:DigestValue>{digest_value}</ds:DigestValue>
+</ds:Reference>"""
 
 def _signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
-    return """<ds:SignedInfo xmlns:ds="%s" xmlns:env="%s">
+    return f"""<ds:SignedInfo xmlns:ds="{DS_NS}" xmlns:env="{ENV_NS}">
  <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
   <ec:InclusiveNamespaces xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#" PrefixList="env"></ec:InclusiveNamespaces>
  </ds:CanonicalizationMethod>
  <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></ds:SignatureMethod>%s%s%s
 </ds:SignedInfo>""" % (
-        DS_NS, ENV_NS,
         _add_ref(body_id, C14N, body_hash),
         _add_ref(messaging_id, C14N, messaging_hash),
         _add_ref(doc_id, ATTACHMENT, doc_hash)
@@ -142,7 +140,7 @@ def _create_key_info_bst(security_token):
     bst_id = security_token.get(etree.QName(WSU_NS, 'Id'))
     reference = etree.SubElement(sec_token_ref, ns(WSSE_NS, 'Reference'))
     reference.set('ValueType', security_token.get('ValueType'))
-    reference.set('URI', '#%s' % bst_id)
+    reference.set('URI', f'#{bst_id}')
 
     return etree.tostring(key_info).decode('utf-8')
 
@@ -159,26 +157,26 @@ def _create_binary_security_token(certfile, id):
     return node
 
 def _create_encrypted_key(key_info, cipher_value):
-    return """
+    return f"""
 <xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="encryptedkey">
  <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
   <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
   <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
  </xenc:EncryptionMethod>
 
- {}
+ {key_info}
 
  <xenc:CipherData>
-  <xenc:CipherValue>{}</xenc:CipherValue>
+  <xenc:CipherValue>{cipher_value}</xenc:CipherValue>
  </xenc:CipherData>
 
  <xenc:ReferenceList>
   <xenc:DataReference URI="#encrypteddata"/>
  </xenc:ReferenceList>
-</xenc:EncryptedKey>""".format(key_info, cipher_value)
+</xenc:EncryptedKey>"""
 
 def _create_encrypted_data(doc_id):
-    return """
+    return f"""
 <xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="encrypteddata" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
 
  <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
@@ -190,11 +188,10 @@ def _create_encrypted_data(doc_id):
  </ds:KeyInfo>
 
  <xenc:CipherData>
-  <xenc:CipherReference URI="{}">
+  <xenc:CipherReference URI="{doc_id}">
    <xenc:Transforms>
     <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
    </xenc:Transforms>
   </xenc:CipherReference>
  </xenc:CipherData>
-</xenc:EncryptedData>""".format(doc_id)
-
+</xenc:EncryptedData>"""

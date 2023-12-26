@@ -1,0 +1,4 @@
+requests
+lxml
+pyOpenSSL
+xmlsec

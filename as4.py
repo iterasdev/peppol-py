@@ -28,7 +28,7 @@ def generate_as4_envelope(filename, doc_id):
                             nsmap={'env': ENV_NS, 'wsu': WSU_NS})
 
     return envelope, messaging, body
-    
+
 def generate_as4_messaging_part(messaging, filename, doc_id):
     document = etree.parse(filename)
     header = document.find(ns(STBH, 'StandardBusinessDocumentHeader'))

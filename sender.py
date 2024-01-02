@@ -1,8 +1,8 @@
 from sml import get_domain_using_http
 from smp import get_smp_info, extract_as4_information
-from as4_sender import post_multipart
+from as4_sender import post_multipart, enable_logging
 
-def send_peppel_document(filename, their_id, xmlsec_path, keyfile, password, certfile):
+def send_peppel_document(filename, their_id, xmlsec_path, keyfile, password, certfile, logging):
     smp_domain = get_domain_using_http(their_id)
     smp_contents = get_smp_info(smp_domain, their_id)
     url, their_cert = extract_as4_information(smp_contents)
@@ -11,7 +11,7 @@ def send_peppel_document(filename, their_id, xmlsec_path, keyfile, password, cer
     with open(their_certfile, 'w') as f:
         f.write('-----BEGIN CERTIFICATE-----\n' + their_cert + '\n-----END CERTIFICATE-----')
 
-    post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_certfile)
+    post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_certfile, logging)
 
 if __name__ == "__main__":
     import argparse, sys
@@ -28,6 +28,8 @@ if __name__ == "__main__":
                         help="The password for the private key")
     parser.add_argument('--certfile', default='cert.pem',
                         help="The path to the public key")
+    parser.add_argument('--logging', action=argparse.BooleanOptionalAction,
+                        help="Enable debug logging")
 
     parsed_args = parser.parse_args()
 
@@ -35,6 +37,10 @@ if __name__ == "__main__":
         sys.stderr.write("Missing --receiver or --document\n")
         sys.exit(1)
 
+    if parsed_args.logging:
+        enable_logging()
+
     send_peppel_document(parsed_args.document, parsed_args.receiver,
                          parsed_args.xmlsec_path, parsed_args.keyfile,
-                         parsed_args.password, parsed_args.certfile)
+                         parsed_args.password, parsed_args.certfile,
+                         parsed_args.logging)

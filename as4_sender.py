@@ -10,11 +10,9 @@ import logging
 from wsse import encrypt_using_external_xmlsec, encrypt, sign
 from as4 import envelope_as_string, generate_as4_envelope, document_id
 
-def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_cert):
-    enable_logging()
-
+def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_cert, logging):
     document, gzip, doc_id = generate_as4_message_to_post(filename, xmlsec_path, keyfile,
-                                                          password, certfile, their_cert)
+                                                          password, certfile, their_cert, logging)
 
     related = MIMEMultipart('related')
 
@@ -34,9 +32,14 @@ def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, thei
     headers = dict(related.items())
 
     r = requests.post(url, data=body, headers=headers)
-    print(r.text)
+    status = 'errorCode' not in r.text
+    if logging:
+        print("response:", r.text)
 
-def generate_as4_message_to_post(filename, xmlsec_path, keyfile, password, certfile, their_cert):
+    print("status:", status)
+    return status
+
+def generate_as4_message_to_post(filename, xmlsec_path, keyfile, password, certfile, their_cert, logging):
     doc_id = document_id()
 
     envelope, messaging, body = generate_as4_envelope(filename, doc_id)
@@ -47,7 +50,8 @@ def generate_as4_message_to_post(filename, xmlsec_path, keyfile, password, certf
     encrypt(envelope, their_cert, cipher_value, doc_id)
 
     doc = envelope_as_string(envelope)
-    #print(doc)
+    if logging:
+        print("AS4 document:", doc)
 
     return [doc, encrypted_gzip, doc_id]
 

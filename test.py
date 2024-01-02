@@ -1,10 +1,12 @@
+from sml import get_domain_using_http
+from smp import get_smp_info, extract_as4_information
 from as4_sender import post_multipart
 
 # params
 xmlsec_path = "~/Downloads/xmlsec1-1.3.2/install/bin/xmlsec1"
 keyfile = "test.key.pem"
 certfile = "cert.pem"
-their_cert = "server-cert.pem"
+their_certfile = "server-cert.pem"
 password = ""
 filename = "PEPPOL_TestCase_0232_20231222T1138Z/TestFile_001__BISv3_Invoice.xml"
 url = "https://phase4-controller.testbed.peppol.org/as4"
@@ -13,13 +15,18 @@ url = "https://phase4-controller.testbed.peppol.org/as4"
 #receiver = '9928:CY99990011B' # final URL is buggy
 #receiver = '0188:2011001016148' # good example
 #receiver = '9922:NGTBCNTRLP1001' # from test certification file
+receiver = '0192:992957433'
 
-# why doesn't test cert do this?
+
+# this doesn't seem to work properly and test cert uses http instead?
 #smp_domain = get_domain_using_sml(receiver)
 
-# ok
-#smp_domain = get_domain_using_http(receiver)
-#smp_contents = get_smp_info(smp_domain, receiver)
-#extract_as4_information(smp_contents)
+smp_domain = get_domain_using_http(receiver)
+smp_contents = get_smp_info(smp_domain, receiver)
+url, their_cert = extract_as4_information(smp_contents)
 
-post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_cert)
+their_certfile = '/tmp/their-cert.pem'
+with open(their_certfile, 'w') as f:
+    f.write('-----BEGIN CERTIFICATE-----\r\n' + their_cert + '\r\n-----END CERTIFICATE-----')
+
+post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_certfile)

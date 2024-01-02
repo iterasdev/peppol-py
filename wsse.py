@@ -1,7 +1,5 @@
 """
 Functions for WS-Security (WSSE) signing + encrypting
-
-Code based on python-zeep & py-wsse
 """
 
 import base64

@@ -11,7 +11,8 @@ def send_peppel_document(filename, their_id, xmlsec_path, keyfile, password, cer
     with open(their_certfile, 'w') as f:
         f.write('-----BEGIN CERTIFICATE-----\n' + their_cert + '\n-----END CERTIFICATE-----')
 
-    post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_certfile, logging)
+    return post_multipart(url, xmlsec_path, filename, keyfile, password, certfile,
+                          their_certfile, logging)
 
 if __name__ == "__main__":
     import argparse, sys

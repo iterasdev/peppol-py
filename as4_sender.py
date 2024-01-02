@@ -27,13 +27,14 @@ def post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, thei
     mt.add_header("Content-ID", f'<{doc_id[4:]}>')
     related.attach(mt)
 
-    # java needs CRLF
+    # phase4 needs CRLF, oxalis is fine...
     body = related.__bytes__().replace(b'\n', b'\r\n')
     headers = dict(related.items())
 
     r = requests.post(url, data=body, headers=headers)
-    status = 'errorCode' not in r.text
+    status = r.status_code ==  200 and 'errorCode' not in r.text
     if logging:
+        print("HTTP status:", r.status_code)
         print("response:", r.text)
 
     print("status:", status)

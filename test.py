@@ -6,9 +6,11 @@ from as4_sender import post_multipart
 xmlsec_path = "~/Downloads/xmlsec1-1.3.2/install/bin/xmlsec1"
 keyfile = "test.key.pem"
 certfile = "cert.pem"
-their_certfile = "server-cert.pem"
 password = ""
+
 filename = "PEPPOL_TestCase_0232_20231222T1138Z/TestFile_001__BISv3_Invoice.xml"
+
+their_certfile = "server-cert.pem"
 url = "https://phase4-controller.testbed.peppol.org/as4"
 #url = "https://oxalis.beta.iola.dk/as4"
 
@@ -27,6 +29,6 @@ url, their_cert = extract_as4_information(smp_contents)
 
 their_certfile = '/tmp/their-cert.pem'
 with open(their_certfile, 'w') as f:
-    f.write('-----BEGIN CERTIFICATE-----\r\n' + their_cert + '\r\n-----END CERTIFICATE-----')
+    f.write('-----BEGIN CERTIFICATE-----\n' + their_cert + '\n-----END CERTIFICATE-----')
 
 post_multipart(url, xmlsec_path, filename, keyfile, password, certfile, their_certfile)

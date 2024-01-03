@@ -1,6 +1,6 @@
 # Peppol-py
 
-A python3 implementation of sending [peppol eDelivery] AS4
+A python implementation for sending [peppol eDelivery] AS4
 documents. Most implementations are written in java such as [oxalis]
 and [phase4] and are very complex. This code base is an order of
 magnitude smaller.

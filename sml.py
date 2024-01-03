@@ -1,21 +1,13 @@
 import hashlib
-import dns.resolver
-
-sml_server = 'edelivery.tech.ec.europa.eu'
-#sml_server = 'acc.edelivery.tech.ec.europa.eu' # test
 
 # SML: receiver -> domain (DNS)
 
-def get_domain_using_http(receiver):
+def get_domain_using_http(receiver, test):
     smp_id = 'B-' + hashlib.md5((receiver.lower()).encode("utf-8")).hexdigest()
-    return smp_id + '.iso6523-actorid-upis.' + sml_server
+    return f'{smp_id}.iso6523-actorid-upis.{get_server(test)}'
 
-def get_domain_using_sml(receiver):
-    smp_id = 'B-' + hashlib.md5((receiver.lower()).encode("utf-8")).hexdigest()
-    name = smp_id + '.iso6523-actorid-upis.' + sml_server
-    answers = dns.resolver.resolve(name, 'CNAME')
-    domain = str(answers[0])
-    if domain[-1] == '.':
-        return domain[0:-1]
+def get_server(test):
+    if test:
+        return 'acc.edelivery.tech.ec.europa.eu'
     else:
-        return domain
+        return 'edelivery.tech.ec.europa.eu'

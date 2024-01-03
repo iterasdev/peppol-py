@@ -2,8 +2,8 @@ from sml import get_domain_using_http
 from smp import get_smp_info, extract_as4_information
 from as4_sender import post_multipart, enable_logging
 
-def send_peppel_document(filename, their_id, xmlsec_path, keyfile, password, certfile, logging):
-    smp_domain = get_domain_using_http(their_id)
+def send_peppel_document(filename, their_id, xmlsec_path, keyfile, password, certfile, logging, test):
+    smp_domain = get_domain_using_http(their_id, test)
     smp_contents = get_smp_info(smp_domain, their_id)
     url, their_cert = extract_as4_information(smp_contents)
 
@@ -31,6 +31,8 @@ if __name__ == "__main__":
                         help="The path to the public key")
     parser.add_argument('--logging', action=argparse.BooleanOptionalAction,
                         help="Enable debug logging")
+    parser.add_argument('--test', action=argparse.BooleanOptionalAction,
+                        help="Use test SML server")
 
     parsed_args = parser.parse_args()
 
@@ -44,4 +46,4 @@ if __name__ == "__main__":
     send_peppel_document(parsed_args.document, parsed_args.receiver,
                          parsed_args.xmlsec_path, parsed_args.keyfile,
                          parsed_args.password, parsed_args.certfile,
-                         parsed_args.logging)
+                         parsed_args.logging, parsed_args.test)

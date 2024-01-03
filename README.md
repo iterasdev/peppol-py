@@ -23,6 +23,33 @@ The protocol *should* be relatively simple:
 The implementation includes support for using the SML and SMP protocol
 for finding the AS4 endpoint of the receiver.
 
+## Usage
+
+```
+> python3 sender.py --help
+
+Send peppol files
+
+options:
+  -h, --help            show this help message and exit
+  --receiver RECEIVER   The receivers id
+  --document DOCUMENT   The path of the document to send
+  --xmlsec-path XMLSEC_PATH
+                        The path to latest xmlsec binary
+  --keyfile KEYFILE     The path to the private key
+  --password PASSWORD   The password for the private key
+  --certfile CERTFILE   The path to the public key
+  --logging, --no-logging
+                        Enable debug logging
+  --test, --no-test     Use test SML server
+```
+
+## Example
+
+```
+python3 sender.py --receiver 9922:NGTBCNTRLP1001 --document test_invoice.xml --test
+```
+
 [peppol eDelivery]: https://ec.europa.eu/digital-building-blocks/wikis/display/DIGITAL/eDelivery+AS4+-+1.15
 [oxalis]: https://github.com/OxalisCommunity
 [phase4]: https://github.com/phax/phase4

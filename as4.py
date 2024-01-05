@@ -22,8 +22,8 @@ def envelope_as_string(envelope):
 def generate_as4_envelope(filename, doc_id):
     E, ns = get_element_maker(NAMESPACES)
 
-    attribs = { ns("env", 'mustUnderstand'): "true", ns("wsu", "Id"): "messaging" }
-    messaging = E(ns("ns2", "Messaging"), generate_as4_messaging_part(E, ns, filename, doc_id), attribs)
+    messaging = E(ns("ns2", "Messaging"), generate_as4_messaging_part(E, ns, filename, doc_id),
+                  { ns("env", 'mustUnderstand'): "true", ns("wsu", "Id"): "messaging" })
 
     body = E(ns("env", "Body"), { ns("wsu", 'Id'): "body" })
 

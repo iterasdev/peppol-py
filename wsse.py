@@ -126,20 +126,20 @@ def _add_ref(E, ns, ref_id, transform, digest_value):
 def _signature_info(E, ns, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
     return E(ns("ds", "SignedInfo"),
              E(ns("ds", "CanonicalizationMethod"),
-               E(ns("ec", "InclusiveNamespaces"), PrefixList="env")),
-             E(ns("ds", "SignatureMethod"),
-               _add_ref(E, ns, body_id, C14N, body_hash),
-               _add_ref(E, ns, messaging_id, C14N, messaging_hash),
-               _add_ref(E, ns, doc_id, ATTACHMENT, doc_hash)
-               , Algorithm=RSA_SHA256))
+               E(ns("ec", "InclusiveNamespaces"), PrefixList="env"),
+               Algorithm=C14N),
+             E(ns("ds", "SignatureMethod"), Algorithm=RSA_SHA256),
+             _add_ref(E, ns, body_id, C14N, body_hash),
+             _add_ref(E, ns, messaging_id, C14N, messaging_hash),
+             _add_ref(E, ns, doc_id, ATTACHMENT, doc_hash))
 
 def _create_key_info_bst(E, ns, security_token):
     return E(ns("ds", "KeyInfo"),
              E(ns("wsse", "SecurityTokenReference"),
                E(ns("wsse", "Reference"),
                  ValueType=security_token.get('ValueType'),
-                 URI=f'#{security_token.get(ns("wsu", "Id"))}')),
-               { ns("wsse", 'TokenType'): security_token.get('ValueType') })
+                 URI=f'#{security_token.get(ns("wsu", "Id"))}'),
+               { ns("wsse", 'TokenType'): security_token.get('ValueType') }))
 
 def _create_binary_security_token(E, ns, certfile, id):
     with open(certfile) as fh:

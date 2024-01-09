@@ -121,8 +121,8 @@ def _add_ref(E, ns, ref_id, transform, digest_value):
              E(ns("ds", "Transforms"),
                E(ns("ds", "Transform"), Algorithm=transform)),
              E(ns("ds", "DigestMethod"), Algorithm=SHA256),
-             E(ns("ds", "DigestValue"), digest_value) 
-             ,URI=ref_id)
+             E(ns("ds", "DigestValue"), digest_value),
+             URI=ref_id)
 
 def _signature_info(E, ns, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
     return E(ns("ds", "SignedInfo"),
@@ -171,15 +171,13 @@ def _create_encrypted_data(E, ns, doc_id):
                  E(ns("wsse", "Reference"), URI="#encryptedkey"),
                  { ns("wsse11", "TokenType"):
                    "http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey" }
-                 )
-               ),
+                 )),
              E(ns("xenc", "CipherData"),
                E(ns("xenc", "CipherReference"),
                  E(ns("xenc", "Transforms"),
                    E(ns("ds", "Transform"),
                      Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform")
                    ),
-                 URI=doc_id),
-               ),
+                 URI=doc_id)),
              Id="encrypteddata", MimeType="application/octet-stream",
              Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only")

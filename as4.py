@@ -31,8 +31,7 @@ def generate_as4_envelope(filename, doc_id):
                  E(ns("env", "Header"),
                    messaging,
                    E(ns("wsse", "Security"), { ns("env", "mustUnderstand"): "true" })),
-                 body
-                 )
+                 body)
 
     return envelope, messaging, body
 

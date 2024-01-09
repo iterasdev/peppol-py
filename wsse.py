@@ -3,7 +3,6 @@ Functions for WS-Security (WSSE) signing + encrypting
 """
 
 import base64
-import textwrap
 import os
 
 from lxml import etree
@@ -11,9 +10,22 @@ from OpenSSL import crypto
 import xmlsec
 from base64 import b64decode
 
-from constants import BASE64B, X509TOKEN, DS_NS, ENV_NS, WSSE_NS, ATTACHMENT, C14N, WSU_NS, ENC_NS
-from xmlhelpers import ns
-from hashing import generate_hash, hash_file
+from hashing import generate_hash, hash_file, canonical_xml
+from xmlhelpers import get_element_maker
+from constants import BASE64B, X509TOKEN, C14N, ATTACHMENT
+from constants import ENV_NS, WSSE_NS, WSSE11_NS, WSU_NS, ENC_NS, ENC11_NS, DS_NS
+from constants import SHA256, RSA_SHA256, RSA_OAEP, MGF_SHA256
+
+NAMESPACES = {
+    'env': ENV_NS,
+    'wsu': WSU_NS,
+    'wsse': WSSE_NS,
+    'wsse11': WSSE11_NS,
+    'ec': C14N,
+    'xenc': ENC_NS,
+    'xenc11': ENC11_NS,
+    'ds': DS_NS
+}
 
 # We need to manually "craft" a signature because xmlsec doesn't
 # properly handle external content. It does support cid and tries to
@@ -22,57 +34,55 @@ from hashing import generate_hash, hash_file
 # sense, why would you use a "cannonical" (c14n) encoding before
 # gzipping, if gzip itself is implementation specific?
 def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, password):
-    header = envelope.find(ns(ENV_NS, 'Header'))
-    security = header.find(ns(WSSE_NS, 'Security'))
+    E, ns = get_element_maker(NAMESPACES)
+    header = envelope.find(ns("env", 'Header'))
+    security = header.find(ns("wsse", 'Security'))
 
-    security_token = _create_binary_security_token(certfile, 'signkey')
+    security_token = _create_binary_security_token(E, ns, certfile, 'signkey')
     security.insert(0, security_token)
 
-    # hax hax
-    messaging_str = etree.tostring(messaging, pretty_print=True).decode('utf-8')
-    # "proper" indention
-    messaging_str = textwrap.indent(messaging_str, '    ')
-    messaging_hash = generate_hash(etree.fromstring(messaging_str))
-    messaging_id = messaging.get(etree.QName(WSU_NS, 'Id'))
+    messaging_hash = generate_hash(messaging, 5)
+    messaging_id = messaging.get(ns("wsu", "Id"))
 
     body_hash = generate_hash(body)
-    body_id = body.get(etree.QName(WSU_NS, 'Id'))
+    body_id = body.get(ns("wsu", "Id"))
 
-    signature_info = _signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash)
+    signature_info = _signature_info(E, ns, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash)
 
     ctx = xmlsec.SignatureContext()
     ctx.key = _sign_key(keyfile, certfile, password)
 
-    sign = ctx.sign_binary(signature_info.encode('utf-8'), xmlsec.constants.TransformRsaSha256)
+    signature_info_str = canonical_xml(signature_info).decode('utf-8')
+    # why is env namespace missing?
+    signature_info_str = signature_info_str.replace(
+        '<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">',
+        f'<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:env="{ENV_NS}">')
+
+    sign = ctx.sign_binary(signature_info_str, xmlsec.constants.TransformRsaSha256)
     signature_value = base64.b64encode(sign).decode('utf-8')
 
-    key_info = _create_key_info_bst(security_token)
+    key_info = _create_key_info_bst(E, ns, security_token)
 
-    signature = f"""
-<ds:Signature xmlns:ds="{DS_NS}">
-{signature_info}
-<ds:SignatureValue>{signature_value}</ds:SignatureValue>
-{key_info}
-</ds:Signature>"""
-
-    security.insert(1, etree.fromstring(signature))
+    security.insert(1, E(ns("ds", "Signature"),
+                         signature_info,
+                         E(ns("ds", "SignatureValue"), signature_value),
+                         key_info))
 
 def encrypt(envelope, certfile, cipher_value, doc_id):
-    header = envelope.find(ns(ENV_NS, 'Header'))
-    security = header.find(ns(WSSE_NS, 'Security'))
+    E, ns = get_element_maker(NAMESPACES)
+    header = envelope.find(ns("env", 'Header'))
+    security = header.find(ns("wsse", 'Security'))
 
-    security_token = _create_binary_security_token(certfile, 'encryptkey')
-    key_info = _create_key_info_bst(security_token)
+    security_token = _create_binary_security_token(E, ns, certfile, 'encryptkey')
+    key_info = _create_key_info_bst(E, ns, security_token)
 
     security.insert(0, security_token)
-
-    encrypted_key = _create_encrypted_key(key_info, cipher_value)
-    security.insert(1, etree.fromstring(encrypted_key))
-
-    encrypted_data = _create_encrypted_data(doc_id)
-    security.insert(2, etree.fromstring(encrypted_data))
+    security.insert(1, _create_encrypted_key(E, ns, key_info, cipher_value))
+    security.insert(2, _create_encrypted_data(E, ns, doc_id))
 
 def encrypt_using_external_xmlsec(xmlsec_path, filename, their_cert):
+    E, ns = get_element_maker(NAMESPACES)
+
     base = os.path.basename(filename)
     target = '/tmp/' + base
     xmlsec_result = '/tmp/xmlsec-result.xml'
@@ -89,7 +99,7 @@ def encrypt_using_external_xmlsec(xmlsec_path, filename, their_cert):
         file_contents = f.read()
         xmlsec_xml = etree.fromstring(file_contents)
 
-        cipher_values = [a.text for a in xmlsec_xml.iter() if a.tag == ns(ENC_NS, 'CipherValue')]
+        cipher_values = [a.text for a in xmlsec_xml.iter() if a.tag == ns("xenc", 'CipherValue')]
         cipher_value = cipher_values[0].replace('\n', '')
         encrypted_gzip_b64 = cipher_values[1].replace('\n', '')
         encrypted_gzip = b64decode(encrypted_gzip_b64.encode('ascii'))
@@ -103,93 +113,71 @@ def _sign_key(keyfile, certfile, password):
     key.load_cert_from_file(certfile, xmlsec.KeyFormat.PEM)
     return key
 
-def _add_ref(ref_id, transform, digest_value):
+def _add_ref(E, ns, ref_id, transform, digest_value):
     if transform != ATTACHMENT:
         ref_id = '#' + ref_id
 
-    return f"""
-<ds:Reference URI="{ref_id}">
- <ds:Transforms>
-  <ds:Transform Algorithm="{transform}"></ds:Transform>
- </ds:Transforms>
- <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>
- <ds:DigestValue>{digest_value}</ds:DigestValue>
-</ds:Reference>"""
+    return E(ns("ds", "Reference"),
+             E(ns("ds", "Transforms"),
+               E(ns("ds", "Transform"), Algorithm=transform)),
+             E(ns("ds", "DigestMethod"), Algorithm=SHA256),
+             E(ns("ds", "DigestValue"), digest_value),
+             URI=ref_id)
 
-def _signature_info(doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
-    return f"""<ds:SignedInfo xmlns:ds="{DS_NS}" xmlns:env="{ENV_NS}">
- <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
-  <ec:InclusiveNamespaces xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#" PrefixList="env"></ec:InclusiveNamespaces>
- </ds:CanonicalizationMethod>
- <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></ds:SignatureMethod>%s%s%s
-</ds:SignedInfo>""" % (
-        _add_ref(body_id, C14N, body_hash),
-        _add_ref(messaging_id, C14N, messaging_hash),
-        _add_ref(doc_id, ATTACHMENT, doc_hash)
-    )
+def _signature_info(E, ns, doc_id, doc_hash, body_id, body_hash, messaging_id, messaging_hash):
+    return E(ns("ds", "SignedInfo"),
+             E(ns("ds", "CanonicalizationMethod"),
+               E(ns("ec", "InclusiveNamespaces"), PrefixList="env"),
+               Algorithm=C14N),
+             E(ns("ds", "SignatureMethod"), Algorithm=RSA_SHA256),
+             _add_ref(E, ns, body_id, C14N, body_hash),
+             _add_ref(E, ns, messaging_id, C14N, messaging_hash),
+             _add_ref(E, ns, doc_id, ATTACHMENT, doc_hash))
 
-def _create_key_info_bst(security_token):
-    key_info = etree.Element(ns(DS_NS, 'KeyInfo'), nsmap={'ds': DS_NS})
+def _create_key_info_bst(E, ns, security_token):
+    return E(ns("ds", "KeyInfo"),
+             E(ns("wsse", "SecurityTokenReference"),
+               E(ns("wsse", "Reference"),
+                 ValueType=security_token.get('ValueType'),
+                 URI=f'#{security_token.get(ns("wsu", "Id"))}'),
+               { ns("wsse", 'TokenType'): security_token.get('ValueType') }))
 
-    sec_token_ref = etree.SubElement(key_info, ns(WSSE_NS, 'SecurityTokenReference'))
-    sec_token_ref.set(ns(WSSE_NS, 'TokenType'), security_token.get('ValueType'))
-
-    # reference BinarySecurityToken
-    bst_id = security_token.get(etree.QName(WSU_NS, 'Id'))
-    reference = etree.SubElement(sec_token_ref, ns(WSSE_NS, 'Reference'))
-    reference.set('ValueType', security_token.get('ValueType'))
-    reference.set('URI', f'#{bst_id}')
-
-    return etree.tostring(key_info).decode('utf-8')
-
-def _create_binary_security_token(certfile, id):
-    attribs = { etree.QName(WSU_NS, "Id"): id }
-    node = etree.Element(ns(WSSE_NS, 'BinarySecurityToken'), attribs, nsmap={'wsu': WSU_NS})
-    node.set('EncodingType', BASE64B)
-    node.set('ValueType', X509TOKEN)
-
+def _create_binary_security_token(E, ns, certfile, id):
     with open(certfile) as fh:
         cert = crypto.load_certificate(crypto.FILETYPE_PEM, fh.read())
-        node.text = base64.b64encode(crypto.dump_certificate(crypto.FILETYPE_ASN1, cert))
+        b64_cert = base64.b64encode(crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)).decode('utf-8')
 
-    return node
+        return E(ns("wsse", "BinarySecurityToken"), b64_cert,
+                 { ns("wsu", "Id"): id, "EncodingType": BASE64B, "ValueType": X509TOKEN })
 
-def _create_encrypted_key(key_info, cipher_value):
-    return f"""
-<xenc:EncryptedKey xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="encryptedkey">
- <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#rsa-oaep">
-  <ds:DigestMethod xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-  <xenc11:MGF xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" Algorithm="http://www.w3.org/2009/xmlenc11#mgf1sha256"/>
- </xenc:EncryptionMethod>
+def _create_encrypted_key(E, ns, key_info, cipher_value):
+    return E(ns("xenc", "EncryptedKey"),
+             E(ns("xenc", "EncryptionMethod"),
+               E(ns("ds", "DigestMethod"), Algorithm=SHA256),
+               E(ns("xenc11", "MGF"), Algorithm=MGF_SHA256),
+               Algorithm=RSA_OAEP),
+             key_info,
+             E(ns("xenc", "CipherData"),
+               E(ns("xenc", "CipherValue"), cipher_value)),
+             E(ns("xenc", "ReferenceList"),
+               E(ns("xenc", "DataReference"), URI="#encrypteddata")),
+             Id="encryptedkey")
 
- {key_info}
-
- <xenc:CipherData>
-  <xenc:CipherValue>{cipher_value}</xenc:CipherValue>
- </xenc:CipherData>
-
- <xenc:ReferenceList>
-  <xenc:DataReference URI="#encrypteddata"/>
- </xenc:ReferenceList>
-</xenc:EncryptedKey>"""
-
-def _create_encrypted_data(doc_id):
-    return f"""
-<xenc:EncryptedData xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" Id="encrypteddata" MimeType="application/octet-stream" Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only">
-
- <xenc:EncryptionMethod Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"/>
-
- <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-  <wsse:SecurityTokenReference xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsse11="http://docs.oasis-open.org/wss/oasis-wss-wssecurity-secext-1.1.xsd" wsse11:TokenType="http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey">
-   <wsse:Reference URI="#encryptedkey"/>
-  </wsse:SecurityTokenReference>
- </ds:KeyInfo>
-
- <xenc:CipherData>
-  <xenc:CipherReference URI="{doc_id}">
-   <xenc:Transforms>
-    <ds:Transform xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform"/>
-   </xenc:Transforms>
-  </xenc:CipherReference>
- </xenc:CipherData>
-</xenc:EncryptedData>"""
+def _create_encrypted_data(E, ns, doc_id):
+    return E(ns("xenc", "EncryptedData"),
+             E(ns("xenc", "EncryptionMethod"), Algorithm="http://www.w3.org/2009/xmlenc11#aes128-gcm"),
+             E(ns("ds", "KeyInfo"),
+               E(ns("wsse", "SecurityTokenReference"),
+                 E(ns("wsse", "Reference"), URI="#encryptedkey"),
+                 { ns("wsse11", "TokenType"):
+                   "http://docs.oasis-open.org/wss/oasis-wss-soap-message-security-1.1#EncryptedKey" }
+                 )),
+             E(ns("xenc", "CipherData"),
+               E(ns("xenc", "CipherReference"),
+                 E(ns("xenc", "Transforms"),
+                   E(ns("ds", "Transform"),
+                     Algorithm="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Ciphertext-Transform")
+                   ),
+                 URI=doc_id)),
+             Id="encrypteddata", MimeType="application/octet-stream",
+             Type="http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1#Attachment-Content-Only")

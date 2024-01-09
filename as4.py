@@ -71,6 +71,6 @@ def generate_as4_messaging_part(E, ns, filename, doc_id):
                E(ns("ns2", "PartInfo"),
                  E(ns("ns2", "PartProperties"),
                    E(ns("ns2", "Property"), 'application/gzip', name="CompressionType"),
-                   E(ns("ns2", "Property"), 'application/xml', name="MimeTypexs")
+                   E(ns("ns2", "Property"), 'application/xml', name="MimeType")
                    ), href=doc_id))
              )

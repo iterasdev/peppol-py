@@ -3,7 +3,6 @@ Functions for WS-Security (WSSE) signing + encrypting
 """
 
 import base64
-import textwrap
 import os
 
 from lxml import etree
@@ -11,7 +10,7 @@ from OpenSSL import crypto
 import xmlsec
 from base64 import b64decode
 
-from hashing import generate_hash, hash_file
+from hashing import generate_hash, hash_file, canonical_xml
 from xmlhelpers import get_element_maker
 from constants import BASE64B, X509TOKEN, C14N, ATTACHMENT
 from constants import ENV_NS, WSSE_NS, WSSE11_NS, WSU_NS, ENC_NS, ENC11_NS, DS_NS
@@ -42,11 +41,7 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     security_token = _create_binary_security_token(E, ns, certfile, 'signkey')
     security.insert(0, security_token)
 
-    # hax hax
-    messaging_str = etree.tostring(messaging, pretty_print=True).decode('utf-8')
-    # "proper" indention
-    messaging_str = textwrap.indent(messaging_str, '    ')
-    messaging_hash = generate_hash(etree.fromstring(messaging_str))
+    messaging_hash = generate_hash(messaging, 5)
     messaging_id = messaging.get(ns("wsu", "Id"))
 
     body_hash = generate_hash(body)
@@ -57,7 +52,13 @@ def sign(envelope, doc_id, doc_hash, body, messaging, keyfile, certfile, passwor
     ctx = xmlsec.SignatureContext()
     ctx.key = _sign_key(keyfile, certfile, password)
 
-    sign = ctx.sign_binary(etree.tostring(signature_info), xmlsec.constants.TransformRsaSha256)
+    signature_info_str = canonical_xml(signature_info).decode('utf-8')
+    # why is env namespace missing?
+    signature_info_str = signature_info_str.replace(
+        '<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">',
+        f'<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:env="{ENV_NS}">')
+
+    sign = ctx.sign_binary(signature_info_str, xmlsec.constants.TransformRsaSha256)
     signature_value = base64.b64encode(sign).decode('utf-8')
 
     key_info = _create_key_info_bst(E, ns, security_token)

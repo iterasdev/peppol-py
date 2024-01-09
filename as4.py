@@ -51,12 +51,10 @@ def generate_as4_messaging_part(E, ns, filename, doc_id):
              E(ns("ns2", "PartyInfo"),
                E(ns("ns2", "From"),
                  E(ns("ns2", "PartyId"), from_id, type="urn:fdc:peppol.eu:2017:identifiers:ap"),
-                 E(ns("ns2", "Role"), "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator"),
-                 ),
+                 E(ns("ns2", "Role"), "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator")),
                E(ns("ns2", "To"),
                  E(ns("ns2", "PartyId"), to_id, type="urn:fdc:peppol.eu:2017:identifiers:ap"),
-                 E(ns("ns2", "Role"), "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder"),
-                 )),
+                 E(ns("ns2", "Role"), "http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/responder"))),
              E(ns("ns2", "CollaborationInfo"),
                E(ns("ns2", "AgreementRef"), "urn:fdc:peppol.eu:2017:agreements:tia:ap_provider"),
                E(ns("ns2", "Service"), "urn:fdc:peppol.eu:2017:poacc:billing:01:1.0", type="cenbii-procid-ubl"),
@@ -64,12 +62,10 @@ def generate_as4_messaging_part(E, ns, filename, doc_id):
                E(ns("ns2", "ConversationId"), f'{uuid4()}@beta.iola.dk')),
              E(ns("ns2", "MessageProperties"),
                E(ns("ns2", "Property"), original_sender, name="originalSender", type="iso6523-actorid-upis"),
-               E(ns("ns2", "Property"), final_recipient, name="finalRecipient", type="iso6523-actorid-upis"),
-               ),
+               E(ns("ns2", "Property"), final_recipient, name="finalRecipient", type="iso6523-actorid-upis")),
              E(ns("ns2", "PayloadInfo"),
                E(ns("ns2", "PartInfo"),
                  E(ns("ns2", "PartProperties"),
                    E(ns("ns2", "Property"), 'application/gzip', name="CompressionType"),
-                   E(ns("ns2", "Property"), 'application/xml', name="MimeType")
-                   ), href=doc_id))
-             )
+                   E(ns("ns2", "Property"), 'application/xml', name="MimeType"))
+                 , href=doc_id)))

@@ -7,8 +7,9 @@ magnitude smaller.
 
 The implementation makes use of [xmlsec] for signing and
 encryption. Version 1.3 is needed for the rsa oaep aes128 gcm
-encryption used in peppol. The python bindings are not working with
-that version so we use xmlsec 1.3 as an external binary.
+encryption used in peppol. Debian is still using 1.2 in both stable
+and unstable as of 5/6 2025 so we use xmlsec 1.3 as an external
+binary.
 
 The protocol *should* be relatively simple:
  - Generate a transfer document with:

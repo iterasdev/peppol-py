@@ -33,23 +33,27 @@ Send peppol files
 
 options:
   -h, --help            show this help message and exit
-  --receiver RECEIVER   The receivers id
   --document DOCUMENT   The path of the document to send
   --xmlsec-path XMLSEC_PATH
                         The path to latest xmlsec binary
+  --schematron-path SCHEMATRON_PATH [SCHEMATRON_PATH ...]
+                        Schematron XSL files to validate with
   --keyfile KEYFILE     The path to the private key
   --password PASSWORD   The password for the private key
   --certfile CERTFILE   The path to the public key
-  --logging, --no-logging
+  --verbose, --no-verbose
                         Enable debug logging
-  --test, --no-test     Use test SML server
+  --test, --no-test     Use test SMP server
 ```
 
 ## Example
 
 ```
-python3 sender.py --receiver 9922:NGTBCNTRLP1001 --document test_invoice.xml --test
+python3 sender.py --document test_invoice.xml --schematron-path CEN-EN16931-UBL.xsl --test
 ```
+
+Note the document should not contain the standard business header,
+this will automatically be added.
 
 ## Background
 

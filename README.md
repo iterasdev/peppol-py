@@ -95,13 +95,13 @@ for validation errors but not send to remote endpoint.
 
 ### Send statistics
 
-To send a statistics for access point, call `send_peppol_statistics` in statistics.py:
+To send statistics for access point, call `send_peppol_statistics` in statistics.py:
 
 ``` python
 stats = send_peppol_statistics(aggr_stats, our_endpoint, xmlsec_path, keyfile, password, certfile, test_environment)
 ```
 
-`aggr_stats` is a dict of the aggregated statistics to end in the
+`aggr_stats` is a dict of the aggregated statistics to send in the
 following format:
 
 ``` python

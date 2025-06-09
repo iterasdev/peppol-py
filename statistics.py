@@ -185,6 +185,6 @@ def send_peppol_statistics(aggr_stats, our_endpoint, xmlsec_path, keyfile, passw
                 print(d)
 
         try:
-            send_peppol_document(xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20)
+            return send_peppol_document(xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20)
         except SendPeppolError as ex:
             print(f"Failed with: {ex.code} {ex}")

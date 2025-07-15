@@ -78,7 +78,7 @@ def get_common_name_from_certificate(cert):
 
     return parsed_cert.subject.native['common_name']
 
-def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False):
+def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False, service_provider_id=None):
     document_xml = etree.fromstring(document_content)
     #print(etree.tostring(document_xml, pretty_print=True).decode())
 
@@ -126,7 +126,7 @@ def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_passwor
         'sender_country': sender_country,
     }
 
-    body, headers = get_headers_and_body_for_posting_as4_document(document_content, document_xml, utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert)
+    body, headers = get_headers_and_body_for_posting_as4_document(document_content, document_xml, utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id)
 
     if dryrun:
         return body, headers, stats
@@ -154,6 +154,7 @@ def main():
     parser.add_argument('--keyfile', default='test.key.pem', help="The path to the private key")
     parser.add_argument('--password', default='', help="The password for the private key")
     parser.add_argument('--certfile', default='cert.pem', help="The path to the public key")
+    parser.add_argument('--service-provider', default='PXX000000', help="Service provider ID")
     parser.add_argument('--verbose', action=argparse.BooleanOptionalAction, help="Enable debug logging")
     parser.add_argument('--test', action=argparse.BooleanOptionalAction, help="Use test SMP server")
 
@@ -175,7 +176,8 @@ def main():
         stats = send_peppol_document(document_content,
                                      parsed_args.xmlsec_path, parsed_args.keyfile,
                                      keyfile_password=parsed_args.password, certfile=parsed_args.certfile,
-                                     test_environment=parsed_args.test, document_type_version='2.1')
+                                     test_environment=parsed_args.test, document_type_version='2.1',
+                                     service_provider_id=parsed_args.service_provider)
         print(stats)
     except SendPeppolError as ex:
         print(f"Failed with: {ex.code} {ex}")

@@ -11,8 +11,8 @@ from wsse import sign_as4_envelope_and_body
 from wsse import insert_encryption_info_in_as4_envelope
 from as4 import generate_as4_envelope
 
-def get_headers_and_body_for_posting_as4_document(document_content, document_xml, utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert):
-    message, gzip, attachment_id = make_as4_message_to_post(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, document_content, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert)
+def get_headers_and_body_for_posting_as4_document(document_content, document_xml, utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id):
+    message, gzip, attachment_id = make_as4_message_to_post(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, document_content, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id)
 
     related = MIMEMultipart('related')
 
@@ -61,11 +61,11 @@ def post_edelivery_as4_document(endpoint_url, body, headers, timeout):
 
         raise e
 
-def make_as4_message_to_post(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, document_content, xmlsec_path, keyfile, password, sender_cert, receiver_cert):
+def make_as4_message_to_post(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, document_content, xmlsec_path, keyfile, password, sender_cert, receiver_cert, service_provider_id):
 
     cipher_value, encrypted_gzipped_content, document_hash = encrypt_as4_document(document_content, receiver_cert, xmlsec_path)
 
-    attachment_id, envelope, messaging, body = generate_as4_envelope(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id)
+    attachment_id, envelope, messaging, body = generate_as4_envelope(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, service_provider_id)
 
     sign_as4_envelope_and_body(envelope, attachment_id, document_hash, body, messaging, sender_cert, keyfile, password)
 

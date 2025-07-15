@@ -15,10 +15,8 @@ NAMESPACES = {
     'stbh': STBH_NS
 }
 
-def generate_as4_envelope(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id):
+def generate_as4_envelope(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, service_provider_id):
     E, ns = get_element_maker(NAMESPACES)
-
-    sender_id_without_qualifier = sender_id.split(':', 1)[1]
 
     hostname = socket.getfqdn()
 
@@ -31,7 +29,7 @@ def generate_as4_envelope(utc_timestamp, document_type, process_type, sender_id,
                       E(ns('ns2', 'MessageId'), message_id)),
                     E(ns('ns2', 'PartyInfo'),
                       E(ns('ns2', 'From'),
-                        E(ns('ns2', 'PartyId'), sender_id_without_qualifier, type='urn:fdc:peppol.eu:2017:identifiers:ap'),
+                        E(ns('ns2', 'PartyId'), service_provider_id, type='urn:fdc:peppol.eu:2017:identifiers:ap'),
                         E(ns('ns2', 'Role'), 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/initiator')),
                       E(ns('ns2', 'To'),
                         E(ns('ns2', 'PartyId'), to_party_id, type='urn:fdc:peppol.eu:2017:identifiers:ap'),

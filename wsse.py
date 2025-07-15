@@ -185,7 +185,8 @@ def encrypt_as4_document(document_content, receiver_cert, xmlsec_path):
         if xmlsec_popen.returncode != 0:
             raise make_sendpeppol_error('xmlsec: ' + xmlsec_errors.decode(), 'encryption')
 
-    xmlsec_xml = etree.fromstring(xmlsec_output)
+    p = etree.XMLParser(huge_tree=True)
+    xmlsec_xml = etree.fromstring(xmlsec_output, parser=p)
 
     cipher_values = [a.text for a in xmlsec_xml.iter() if a.tag == ns("xenc", 'CipherValue')]
     cipher_value = cipher_values[0].replace('\n', '')

@@ -1,5 +1,8 @@
 import argparse
 import datetime
+import logging
+import os
+
 from lxml import etree
 from lxml.builder import ElementMaker
 
@@ -72,13 +75,38 @@ def wrap_ubl_in_peppol_standard_business_document_header(ubl, utc_timestamp, doc
 def get_common_name_from_certificate(cert):
     import asn1crypto.pem
     import asn1crypto.x509
+
     cert_type_name, cert_headers, cert_der_bytes = asn1crypto.pem.unarmor(cert)
     assert cert_type_name == 'CERTIFICATE'
     parsed_cert = asn1crypto.x509.Certificate.load(cert_der_bytes)
 
     return parsed_cert.subject.native['common_name']
 
-def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False, service_provider_id=None):
+
+def validate_certificate(cert, cabundle):
+    import asn1crypto.pem
+    from certvalidator import ValidationContext, CertificateValidator
+
+    trust_roots = []
+    if cabundle:
+        with open(cabundle, 'rb') as f:
+            for _, _, der_bytes in asn1crypto.pem.unarmor(f.read(), multiple=True):
+                trust_roots.append(der_bytes)
+
+    context = ValidationContext(
+        allow_fetching=True,
+        trust_roots=trust_roots,
+        revocation_mode="hard-fail",
+    )
+    validator = CertificateValidator(cert, validation_context=context)
+    validator.validate_usage(
+        key_usage={"key_encipherment", "key_agreement", "digital_signature"},
+        extended_key_usage={"client_auth"},
+        extended_optional=False,
+    )
+
+
+def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False, service_provider_id=None, cabundle=None):
     document_xml = etree.fromstring(document_content)
     #print(etree.tostring(document_xml, pretty_print=True).decode())
 
@@ -114,6 +142,7 @@ def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_passwor
     with open(certfile, 'rb') as sender_certfile_f:
         sender_cert = sender_certfile_f.read()
 
+    validate_certificate(receiver_cert, cabundle)
     to_party_id = get_common_name_from_certificate(receiver_cert)
 
     stats = {
@@ -156,6 +185,7 @@ def main():
     parser.add_argument('--certfile', default='cert.pem', help="The path to the public key")
     parser.add_argument('--service-provider', default='PXX000000', help="Service provider ID")
     parser.add_argument('--verbose', action=argparse.BooleanOptionalAction, help="Enable debug logging")
+    parser.add_argument('--cabundle', default='', help="The path to the CA bundle, defaults to bundled CA bundles for test and prod")
     parser.add_argument('--test', action=argparse.BooleanOptionalAction, help="Use test SMP server")
 
     parsed_args = parser.parse_args()
@@ -172,12 +202,19 @@ def main():
             print(d)
         return
 
+    cabundle = parsed_args.cabundle
+    if not cabundle and parsed_args.test:
+        cabundle = os.path.join(os.path.dirname(__file__), 'cabundle-test.pem')
+    elif not cabundle and not parsed_args.test:
+        cabundle = os.path.join(os.path.dirname(__file__), 'cabundle-prod.pem')
+
     try:
         stats = send_peppol_document(document_content,
                                      parsed_args.xmlsec_path, parsed_args.keyfile,
                                      keyfile_password=parsed_args.password, certfile=parsed_args.certfile,
                                      test_environment=parsed_args.test, document_type_version='2.1',
-                                     service_provider_id=parsed_args.service_provider)
+                                     service_provider_id=parsed_args.service_provider,
+                                     cabundle=cabundle)
         print(stats)
     except SendPeppolError as ex:
         print(f"Failed with: {ex.code} {ex}")

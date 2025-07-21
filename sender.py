@@ -72,11 +72,35 @@ def wrap_ubl_in_peppol_standard_business_document_header(ubl, utc_timestamp, doc
 def get_common_name_from_certificate(cert):
     import asn1crypto.pem
     import asn1crypto.x509
+
     cert_type_name, cert_headers, cert_der_bytes = asn1crypto.pem.unarmor(cert)
     assert cert_type_name == 'CERTIFICATE'
     parsed_cert = asn1crypto.x509.Certificate.load(cert_der_bytes)
 
     return parsed_cert.subject.native['common_name']
+
+def validate_certificate(cert, test):
+    import asn1crypto.pem
+    from certvalidator import ValidationContext, CertificateValidator
+
+    cabundle = 'certs/ap-test-truststore.pem' if test else 'certs/ap-prod-truststore.pem'
+    trust_roots = []
+    with open(cabundle, 'rb') as f:
+        for _, _, der_bytes in asn1crypto.pem.unarmor(f.read(), multiple=True):
+            trust_roots.append(der_bytes)
+
+    context = ValidationContext(
+        allow_fetching=True,
+        trust_roots=trust_roots,
+        revocation_mode="hard-fail",
+    )
+    validator = CertificateValidator(cert, validation_context=context)
+    validator.validate_usage(
+        key_usage={"key_encipherment", "key_agreement", "digital_signature"},
+        extended_key_usage={"client_auth"},
+        extended_optional=False,
+    )
+
 
 def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False):
     document_xml = etree.fromstring(document_content)
@@ -114,6 +138,7 @@ def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_passwor
     with open(certfile, 'rb') as sender_certfile_f:
         sender_cert = sender_certfile_f.read()
 
+    validate_certificate(receiver_cert, test_environment)
     to_party_id = get_common_name_from_certificate(receiver_cert)
 
     stats = {

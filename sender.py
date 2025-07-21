@@ -154,6 +154,7 @@ def main():
     parser.add_argument('--keyfile', default='test.key.pem', help="The path to the private key")
     parser.add_argument('--password', default='', help="The password for the private key")
     parser.add_argument('--certfile', default='cert.pem', help="The path to the public key")
+    parser.add_argument('--unwrap-sbh', action=argparse.BooleanOptionalAction, help="Unwrap standard business header already present in document. Useful for testbed.")
     parser.add_argument('--verbose', action=argparse.BooleanOptionalAction, help="Enable debug logging")
     parser.add_argument('--test', action=argparse.BooleanOptionalAction, help="Use test SMP server")
 
@@ -170,6 +171,9 @@ def main():
         for d in errors:
             print(d)
         return
+
+    if parsed_args.unwrap_sbh:
+        document_content = etree.tostring(etree.fromstring(document_content).find('./{*}Invoice'))
 
     try:
         stats = send_peppol_document(document_content,

@@ -1,4 +1,6 @@
 requests
 lxml
-pyOpenSSL
 xmlsec
+asn1crypto
+certvalidator
+saxonche

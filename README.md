@@ -33,23 +33,111 @@ Send peppol files
 
 options:
   -h, --help            show this help message and exit
-  --receiver RECEIVER   The receivers id
   --document DOCUMENT   The path of the document to send
   --xmlsec-path XMLSEC_PATH
                         The path to latest xmlsec binary
+  --schematron-path SCHEMATRON_PATH [SCHEMATRON_PATH ...]
+                        Schematron XSL files to validate with
   --keyfile KEYFILE     The path to the private key
   --password PASSWORD   The password for the private key
   --certfile CERTFILE   The path to the public key
-  --logging, --no-logging
+  --verbose, --no-verbose
                         Enable debug logging
-  --test, --no-test     Use test SML server
+  --test, --no-test     Use test SMP server
 ```
 
 ## Example
 
 ```
-python3 sender.py --receiver 9922:NGTBCNTRLP1001 --document test_invoice.xml --test
+python3 sender.py --document test_invoice.xml --schematron-path CEN-EN16931-UBL.xsl --test
 ```
+
+## API
+
+### Send document
+
+To send a prepared xml document, call `send_peppol_document` in sender.py:
+
+``` python
+stats = send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False)
+```
+
+`document_content` to send. Note the standard business header will
+automatically be added.
+
+`xmlsec_path` specifies the path to a xmlsec 1.3 or higher binary.
+
+`keyfile` the path to the private key of the sender.
+
+`password` the password for the private key of the sender.
+
+`certfile` the path to the public key of the sender.
+
+`sender_id` optional sender id, will be extracted from document if not
+specified.
+
+`receiver_id` optional receiver id, will be extracted from document if
+not specified.
+
+`sender_country` optional sender country, will be extracted from
+document if not specified.
+
+`document_type_version` the document type version, if not specified
+will be last part of CustomizationID. For invoices should be set to
+`2.1`.
+
+`test_environment` use test SML servers?
+
+`timeout` number of seconds to wait for response from the remote end.
+
+`dryrun` if specified, will prepare, get the endpoint, test document
+for validation errors but not send to remote endpoint.
+
+### Send statistics
+
+To send statistics for access point, call `send_peppol_statistics` in statistics.py:
+
+``` python
+stats = send_peppol_statistics(aggr_stats, our_endpoint, xmlsec_path, keyfile, password, certfile, test_environment)
+```
+
+`aggr_stats` is a dict of the aggregated statistics to send in the
+following format:
+
+``` python
+{
+  'from_date': <DATETIME>,
+  'to_date': <DATETIME>,
+  'outgoing': <NUM>,
+  'outgoing_by_transport_profile': # { 'transport_profile': <NUM> },
+  'outgoing_by_receiver_common_name_document_type_process_type': # { ('receiver_common_name', 'document_type', 'process_type'): <NUM> },
+  'senders': <SET_OF_IDS>,
+  'senders_by_country': { 'country': <SET_OF_IDS> },
+  'senders_by_document_type_country': { ('document_type', 'country'): <SET_OF_IDS> },
+  'senders_by_document_type_process_type': { ('document_type', 'process_type'): <SET_OF_IDS> },
+  'senders_by_document_type_process_type_country': { ('document_type', 'process_type', 'country'): <SET_OF_IDS> }
+}
+```
+
+`our_endpoint` is a dict with endpoint information. Example:
+
+``` python
+{
+  'id': "PDK000592",
+  'type': "DK:P",
+  'country': "DK"
+}
+```
+
+`xmlsec_path` specifies the path to a xmlsec 1.3 or higher binary.
+
+`keyfile` the path to the private key of the sender.
+
+`password` the password for the private key of the sender.
+
+`certfile` the path to the public key of the sender.
+
+`test_environment` use test SML servers?
 
 ## Background
 

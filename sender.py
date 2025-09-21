@@ -83,7 +83,11 @@ def validate_certificate(cert, test):
     import asn1crypto.pem
     from certvalidator import ValidationContext, CertificateValidator
 
-    cabundle = 'certs/ap-test-truststore.pem' if test else 'certs/ap-prod-truststore.pem'
+    if datetime.datetime.now(datetime.UTC) > datetime.datetime(2026, 4, 1, 0, 0, 0, tzinfo=datetime.UTC):
+        # See G2→G3 migration plan: https://openpeppol.atlassian.net/wiki/spaces/RR/pages/4387602465/2025.06.17+PKI+Migration+Plan
+        cabundle = 'certs/ap-test-truststore-g3.pem' if test else 'certs/ap-prod-truststore-g3.pem'
+    else:
+        cabundle = 'certs/ap-test-truststore-g2-g3.pem' if test else 'certs/ap-prod-truststore-g2-g3.pem'
     trust_roots = []
     with open(cabundle, 'rb') as f:
         for _, _, der_bytes in asn1crypto.pem.unarmor(f.read(), multiple=True):

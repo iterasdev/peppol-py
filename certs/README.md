@@ -1,8 +1,14 @@
 # Root PEPPOL certificates
 
-The certificates in this folder are from the [peppol commons repo].
-They should be valid until 2035 and are used for validating receiver
-certificates before sending.
+The files "g2-g3" include the G2 and G3 certificates.
+
+The files "g3" include only the G3 certificates.
+
+Original source for G2: https://openpeppol.atlassian.net/wiki/spaces/OPMA/pages/193069072/Introduction+to+the+revised+PKI+Certificate+infrastructure+and+issuing+process
+
+Original source for G3: https://openpeppol.atlassian.net/wiki/spaces/OPMA/pages/4344053761/Peppol+PKI+2025+-+Certificate+Authorities
+
+Source of the p12 file is the [peppol commons repo].
 
 ## Generate pem files
 

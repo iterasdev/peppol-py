@@ -173,14 +173,14 @@ def enable_debug_logging():
 
 def main():
     parser = argparse.ArgumentParser(description="Send peppol files")
-    parser.add_argument('--document', default='', help="The path of the document to send")
+    parser.add_argument('--document', help="The path of the document to send", required=True)
     parser.add_argument('--xmlsec-path', default='xmlsec1', help="The path to latest xmlsec binary")
     parser.add_argument('--schematron-path', nargs='+', help="Schematron XSL files to validate with")
     parser.add_argument('--keyfile', default='test.key.pem', help="The path to the private key")
     parser.add_argument('--password', default='', help="The password for the private key")
     parser.add_argument('--certfile', default='cert.pem', help="The path to the public key")
     parser.add_argument('--unwrap-sbh', action=argparse.BooleanOptionalAction, help="Unwrap standard business header already present in document. Useful for testbed.")
-    parser.add_argument('--service-provider', help="Service provider ID")
+    parser.add_argument('--service-provider', help="Service provider ID", required=True)
     parser.add_argument('--verbose', action=argparse.BooleanOptionalAction, help="Enable debug logging")
     parser.add_argument('--test', action=argparse.BooleanOptionalAction, help="Use test SMP server")
 
@@ -209,8 +209,10 @@ def main():
                                      service_provider_id=parsed_args.service_provider)
         print(stats)
     except SendPeppolError as ex:
+        raise
         print(f"Failed with: {ex.code} {ex}")
     except Exception as ex:
+        raise
         print(f"Failed with: {ex}")
 
 if __name__ == "__main__":

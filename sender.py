@@ -212,7 +212,6 @@ def main():
         raise
         print(f"Failed with: {ex.code} {ex}")
     except Exception as ex:
-        raise
         print(f"Failed with: {ex}")
 
 if __name__ == "__main__":

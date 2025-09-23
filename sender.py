@@ -209,7 +209,6 @@ def main():
                                      service_provider_id=parsed_args.service_provider)
         print(stats)
     except SendPeppolError as ex:
-        raise
         print(f"Failed with: {ex.code} {ex}")
     except Exception as ex:
         print(f"Failed with: {ex}")

@@ -8,7 +8,7 @@ import urllib.parse
 import requests
 import hashlib
 
-from exception import make_sendpeppol_error
+from .exception import make_sendpeppol_error
 
 
 def get_smp_url_from_dns(participant_id, test_environment):

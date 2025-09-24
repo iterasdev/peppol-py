@@ -1,13 +1,13 @@
-import argparse
 import datetime
+from pathlib import Path
+
 from lxml import etree
 from lxml.builder import ElementMaker
 
-from smp import get_service_info_for_participant_from_smp
-from validation import validate_peppol_document
-from exception import make_sendpeppol_error, SendPeppolError
-from as4_sender import get_headers_and_body_for_posting_as4_document
-from as4_sender import post_edelivery_as4_document
+from .smp import get_service_info_for_participant_from_smp
+from .exception import make_sendpeppol_error
+from .as4_sender import get_headers_and_body_for_posting_as4_document
+from .as4_sender import post_edelivery_as4_document
 
 def split_tag(element):
     ns, tag = element.tag.lstrip('{').split('}')
@@ -83,11 +83,12 @@ def validate_certificate(cert, test):
     import asn1crypto.pem
     from certvalidator import ValidationContext, CertificateValidator
 
+    certfolder = Path(__file__).parent / "data" / "certs"
     if datetime.datetime.now(datetime.UTC) > datetime.datetime(2026, 4, 1, 0, 0, 0, tzinfo=datetime.UTC):
         # See G2→G3 migration plan: https://openpeppol.atlassian.net/wiki/spaces/RR/pages/4387602465/2025.06.17+PKI+Migration+Plan
-        cabundle = 'certs/ap-test-truststore-g3.pem' if test else 'certs/ap-prod-truststore-g3.pem'
+        cabundle = certfolder / ('ap-test-truststore-g3.pem' if test else 'ap-prod-truststore-g3.pem')
     else:
-        cabundle = 'certs/ap-test-truststore-g2-g3.pem' if test else 'certs/ap-prod-truststore-g2-g3.pem'
+        cabundle = certfolder / ('ap-test-truststore-g2-g3.pem' if test else 'ap-prod-truststore-g2-g3.pem')
     trust_roots = []
     with open(cabundle, 'rb') as f:
         for _, _, der_bytes in asn1crypto.pem.unarmor(f.read(), multiple=True):
@@ -106,7 +107,52 @@ def validate_certificate(cert, test):
     )
 
 
-def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_password, certfile, sender_id=None, receiver_id=None, sender_country=None, document_type_version=None, test_environment=True, timeout=20, dryrun=False, service_provider_id=None):
+def send_peppol_document(
+    document_content: str,
+    xmlsec_path: str,
+    keyfile: str,
+    keyfile_password: str,
+    certfile: str,
+    service_provider_id: str,
+    sender_id: str=None,
+    receiver_id: str=None,
+    sender_country: str=None,
+    document_type_version: str=None,
+    test_environment: bool=True,
+    timeout: int=20,
+    dryrun: bool=False,
+) -> dict:
+    """
+    Send a peppol document. Returned is a dictionary of information you need to record to later send reports to Peppol.
+
+    ``document_content`` (str): document to send. Note the standard business header will automatically be added.
+
+    ``xmlsec_path`` (str): specifies the path to a xmlsec 1.3 or higher binary.
+
+    ``keyfile`` (str): the path to the private key of the sender.
+
+    ``password`` (str): the password for the private key of the sender.
+
+    ``certfile`` (str): the path to the public key of the sender.
+
+    ``service_provider_id`` (bool): identifier of the sending service provider.
+
+    ``sender_id`` (str): optional sender id, will be extracted from document if not specified.
+
+    ``receiver_id`` (str): optional receiver id, will be extracted from document if not specified.
+
+    ``sender_country`` (str): optional sender country, will be extracted from document if not specified.
+
+    ``document_type_version`` (str): the document type version, if not specified will be last part of CustomizationID.
+                                     For invoices should be set to `2.1`.
+
+    ``test_environment`` (bool): use test SML servers?
+
+    ``timeout`` (int): number of seconds to wait for response from the remote end.
+
+    ``dryrun`` (bool): if specified, will prepare, get the endpoint, test document for validation errors but not send to remote endpoint.
+                       Return value will be a tuple of ``body, header, stats``.
+    """
     document_xml = etree.fromstring(document_content)
     #print(etree.tostring(document_xml, pretty_print=True).decode())
 
@@ -163,59 +209,3 @@ def send_peppol_document(document_content, xmlsec_path, keyfile, keyfile_passwor
     post_edelivery_as4_document(endpoint_url, body, headers, timeout=timeout)
 
     return stats
-
-def enable_debug_logging():
-    import http.client as http_client
-    http_client.HTTPConnection.debuglevel = 1
-
-    import logging
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
-
-def main():
-    parser = argparse.ArgumentParser(description="Send peppol files")
-    parser.add_argument('--document', help="The path of the document to send", required=True)
-    parser.add_argument('--xmlsec-path', default='xmlsec1', help="The path to latest xmlsec binary")
-    parser.add_argument('--schematron-path', nargs='+', help="Schematron XSL files to validate with")
-    parser.add_argument('--keyfile', default='test.key.pem', help="The path to the private key")
-    parser.add_argument('--password', default='', help="The password for the private key")
-    parser.add_argument('--certfile', default='cert.pem', help="The path to the public key")
-    parser.add_argument('--unwrap-sbh', action=argparse.BooleanOptionalAction, help="Unwrap standard business header already present in document. Useful for testbed.")
-    parser.add_argument('--service-provider', help="Service provider ID", required=True)
-    parser.add_argument('--verbose', action=argparse.BooleanOptionalAction, help="Enable debug logging")
-    parser.add_argument('--test', action=argparse.BooleanOptionalAction, help="Use test SMP server")
-
-    parsed_args = parser.parse_args()
-
-    if parsed_args.verbose:
-        enable_debug_logging()
-
-    with open(parsed_args.document, 'rb') as f:
-        document_content = f.read()
-
-    errors = validate_peppol_document(document_content, parsed_args.schematron_path)
-    if errors:
-        for d in errors:
-            print(d)
-        return
-
-    if parsed_args.unwrap_sbh:
-        document_content = etree.tostring(etree.fromstring(document_content).find('./{*}Invoice'))
-
-    try:
-        stats = send_peppol_document(document_content,
-                                     parsed_args.xmlsec_path, parsed_args.keyfile,
-                                     keyfile_password=parsed_args.password, certfile=parsed_args.certfile,
-                                     test_environment=parsed_args.test, document_type_version='2.1',
-                                     service_provider_id=parsed_args.service_provider)
-        print(stats)
-    except SendPeppolError as ex:
-        print(f"Failed with: {ex.code} {ex}")
-    except Exception as ex:
-        print(f"Failed with: {ex}")
-
-if __name__ == "__main__":
-    main()

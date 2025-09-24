@@ -3,8 +3,8 @@ Functions for WS-Security (WSSE) signing + encrypting
 """
 
 import base64
-import os
 import io
+from pathlib import Path
 
 from lxml import etree
 import xmlsec
@@ -12,9 +12,9 @@ import xml.etree.ElementTree
 import hashlib
 import gzip
 
-from xmlhelpers import get_element_maker
-from constants import ENV_NS, WSSE_NS, WSU_NS, WSS_BASE
-from exception import make_sendpeppol_error
+from .xmlhelpers import get_element_maker
+from .constants import ENV_NS, WSSE_NS, WSU_NS, WSS_BASE
+from .exception import make_sendpeppol_error
 
 DS_NS = 'http://www.w3.org/2000/09/xmldsig#'
 ENC_NS = 'http://www.w3.org/2001/04/xmlenc#'
@@ -172,7 +172,7 @@ def encrypt_as4_document(document_content, receiver_cert, xmlsec_path):
             '--binary-data', '/dev/stdin',
             #'--verbose'
             '--lax-key-search',
-            os.path.join(os.path.dirname(__file__), 'sendpeppol_encrypt_template.xml'),
+            Path(__file__).parent / 'data' / 'xmlsec' / 'sendpeppol_encrypt_template.xml',
         ]
 
         xmlsec_popen = subprocess.Popen(

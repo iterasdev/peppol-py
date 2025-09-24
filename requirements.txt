@@ -1,7 +1,0 @@
-requests
-lxml
-xmlsec
-asn1crypto
-certvalidator
-saxonche
-dnspython==2.*

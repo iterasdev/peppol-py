@@ -1,0 +1,35 @@
+[project]
+name = "peppol-py"
+version = "1.0.0"
+authors = [
+    { name = "Anders Rune Jensen" },
+]
+description = "A python implementation for sending peppol eDelivery AS4 documents."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "Beerware"
+license-files = ["LICEN[CS]E*"]
+dependencies = [
+    # Dependencies are mostly not pinned to make it easier to integrate peppol_py into existing
+    # projects that pin other versions. Tested versions are added as comments to ease debugging
+    # if this some day stops working due to a dependency release.
+    "requests", # tested with 2.32.5
+    "lxml", # tested with 6.0.1
+    "xmlsec", # tested with 1.3.16
+    "asn1crypto", # tested with 1.5.1
+    "certvalidator", # tested with 0.11.1
+    "saxonche", # tested with 12.9.0
+    "dnspython==2.*", # tested with 2.8.0
+]
+
+[project.urls]
+Homepage = "https://github.com/iterasdev/peppol-py"
+Issues = "https://github.com/iterasdev/peppol-py/issues"
+
+[build-system]
+requires = ["setuptools >= 80.9.0"]
+build-backend = "setuptools.build_meta"

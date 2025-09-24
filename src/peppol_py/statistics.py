@@ -1,9 +1,9 @@
 from lxml import etree
 from lxml.builder import ElementMaker
 
-from exception import SendPeppolError
-from validation import validate_peppol_document
-from sender import send_peppol_document, get_common_name_from_certificate
+from .exception import SendPeppolError
+from .validation import validate_peppol_document
+from .sender import send_peppol_document, get_common_name_from_certificate
 
 PEPPOL_ORGANIZATION_ID_TYPES = {
     # https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/
@@ -149,28 +149,51 @@ def render_peppol_transaction_statistics_xml(stats, certfile):
 
     return etree.tostring(xml, xml_declaration=True, encoding='UTF-8', method='xml')
 
-# examples:
-# - document_type = 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1',
-# - process_type = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'
-# - transport_profile = 'peppol-transport-as4-v2_0'
-# - sender_country = 'DK'
-# - receiver_common_name = 'PNO000063'
+def send_peppol_statistics(
+    aggr_stats: dict,
+    our_endpoint: dict,
+    xmlsec_path: str,
+    keyfile: str,
+    password: str,
+    certfile: str,
+    test_environment: bool
+) -> dict:
+    """
+    Send peppol statistics to the required reporting endpoint.
 
-# aggr_stats = {
-#  'from_date': <DATETIME>,
-#  'to_date': <DATETIME>,
-#  'outgoing': <NUM>,
-#  'outgoing_by_transport_profile': # { 'transport_profile': <NUM> },
-#  'outgoing_by_receiver_common_name_document_type_process_type': # { ('receiver_common_name', 'document_type', 'process_type'): <NUM> },
-#  'senders': <SET_OF_IDS>,
-#  'senders_by_country': { 'country': <SET_OF_IDS> },
-#  'senders_by_document_type_country': { ('document_type', 'country'): <SET_OF_IDS> },
-#  'senders_by_document_type_process_type': { ('document_type', 'process_type'): <SET_OF_IDS> },
-#  'senders_by_document_type_process_type_country': { ('document_type', 'process_type', 'country'): <SET_OF_IDS> }
-#}
-# our_endpoint = { "id": "PDK000592", "type": "DK:P", "country": "DK" }
+    ``aggr_stats`` (dict) should look like this:
+    ```
+    document_type = 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0::2.1',
+    process_type = 'urn:fdc:peppol.eu:2017:poacc:billing:01:1.0'
+    transport_profile = 'peppol-transport-as4-v2_0'
+    sender_country = 'DK'
+    receiver_common_name = 'PNO000063'
+    aggr_stats = {
+      'from_date': <DATETIME>,
+      'to_date': <DATETIME>,
+      'outgoing': <NUM>,
+      'outgoing_by_transport_profile': { transport_profile: <NUM> },
+      'outgoing_by_receiver_common_name_document_type_process_type': { (receiver_common_name, document_type, process_type): <NUM> },
+      'senders': <SET_OF_IDS>,
+      'senders_by_country': { sender_country: <SET_OF_IDS> },
+      'senders_by_document_type_country': { (document_type, country): <SET_OF_IDS> },
+      'senders_by_document_type_process_type': { (document_type, process_type): <SET_OF_IDS> },
+      'senders_by_document_type_process_type_country': { (document_type, process_type, sender_country): <SET_OF_IDS> }
+    }
+    ```
 
-def send_peppol_statistics(aggr_stats, our_endpoint, xmlsec_path, keyfile, password, certfile, test_environment):
+    ``our_endpoint`` (dict) should look like this: ``{ "id": "PDK000592", "type": "DK:P", "country": "DK" }``
+
+    ``xmlsec_path`` (str): specifies the path to a xmlsec 1.3 or higher binary.
+
+    ``keyfile`` (str): the path to the private key of the sender.
+
+    ``password`` (str): the password for the private key of the sender.
+
+    ``certfile`` (str): the path to the public key of the sender.
+
+    ``test_environment`` (bool): use test SML servers?
+    """
     end_user_xml = render_peppol_end_user_statistics_xml(aggr_stats, certfile)
     transaction_xml = render_peppol_transaction_statistics_xml(aggr_stats, certfile)
 
@@ -178,6 +201,7 @@ def send_peppol_statistics(aggr_stats, our_endpoint, xmlsec_path, keyfile, passw
     sender_id = sender_id_element.get('schemeID') + ':' + sender_id_element.text
     receiver_id = '9925:BE0848934496'
 
+    failure = None
     for xml, schematron_xsls in [(end_user_xml, PEPPOL_END_USER_STATISTICS_SCHEMATRON_XSLS), (transaction_xml, PEPPOL_TRANSACTION_STATISTICS_SCHEMATRON_XSLS)]:
         errors = validate_peppol_document(xml, schematron_xsls)
         if errors:
@@ -188,3 +212,5 @@ def send_peppol_statistics(aggr_stats, our_endpoint, xmlsec_path, keyfile, passw
             return send_peppol_document(xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20)
         except SendPeppolError as ex:
             print(f"Failed with: {ex.code} {ex}")
+            failure = ex
+    raise failure

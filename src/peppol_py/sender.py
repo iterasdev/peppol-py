@@ -108,7 +108,7 @@ def validate_certificate(cert, test):
 
 
 def send_peppol_document(
-    document_content: str,
+    document_content: bytes,
     xmlsec_path: str,
     keyfile: str,
     keyfile_password: str,
@@ -125,7 +125,7 @@ def send_peppol_document(
     """
     Send a peppol document. Returned is a dictionary of information you need to record to later send reports to Peppol.
 
-    ``document_content`` (str): document to send. Note the standard business header will automatically be added.
+    ``document_content`` (bytes): document to send. Note the standard business header will automatically be added.
 
     ``xmlsec_path`` (str): specifies the path to a xmlsec 1.3 or higher binary.
 

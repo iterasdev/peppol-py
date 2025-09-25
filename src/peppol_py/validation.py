@@ -1,20 +1,40 @@
 import os
+from pathlib import Path
+from typing import List
 
-from saxonche import PySaxonProcessor
 from lxml import etree
+from saxonche import PySaxonProcessor
 
-def validate_peppol_document(document_content, schematron_xsls, remove_namespaces_from_errors=True, warnings=False):
-    schematron_dir_path = os.path.join(os.path.dirname(__file__), 'sendpeppol-schematron')
 
+def validate_peppol_document(
+    document_content: bytes,
+    schematron_xsls: List[str],
+    remove_namespaces_from_errors=True,
+    warnings=False
+) -> List[dict]:
+    """
+    Validate peppol document. Returns a list of errors.
+
+    ``document_content`` (bytes): XML content
+
+    ``schematron_xsls`` (list of str): Either full paths to xsl files, or names of xsl files shipped with peppol_py.
+
+    ``remove_namespaces_from_errors`` (bool): For shorter output of error messages.
+
+    ``warnings`` (bool): If ``True``, warnings will be returned as well out.
+    """
     errors = []
     # we need saxonche (SaxonC Home Edition) because lxml (libxsl)
     # only works with XSLT 1.0, and the Schematron is written in XSLT
     # 2.0
     with PySaxonProcessor(license=False) as proc:
         for validation_xsl_file in schematron_xsls:
+            if not os.path.exists(validation_xsl_file):
+                # Resolve internal files
+                validation_xsl_file = str(Path(__file__).parent / 'data' / 'sendpeppol-schematron' / validation_xsl_file)
             xsltproc = proc.new_xslt30_processor()
             document = proc.parse_xml(xml_text=document_content.decode())
-            executable = xsltproc.compile_stylesheet(stylesheet_file=os.path.join(schematron_dir_path, validation_xsl_file))
+            executable = xsltproc.compile_stylesheet(stylesheet_file=validation_xsl_file)
             output = executable.transform_to_string(xdm_node=document)
 
             parsed_output = etree.fromstring(output.encode())

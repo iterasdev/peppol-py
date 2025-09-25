@@ -4,12 +4,11 @@ from email.mime.application import MIMEApplication
 import email.encoders
 from lxml import etree
 
-from exception import make_sendpeppol_error
-
-from wsse import encrypt_as4_document
-from wsse import sign_as4_envelope_and_body
-from wsse import insert_encryption_info_in_as4_envelope
-from as4 import generate_as4_envelope
+from .exception import make_sendpeppol_error
+from .wsse import encrypt_as4_document
+from .wsse import sign_as4_envelope_and_body
+from .wsse import insert_encryption_info_in_as4_envelope
+from .as4 import generate_as4_envelope
 
 def get_headers_and_body_for_posting_as4_document(document_content, document_xml, utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id):
     message, gzip, attachment_id = make_as4_message_to_post(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, document_content, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id)

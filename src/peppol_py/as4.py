@@ -1,8 +1,8 @@
 import uuid
 import socket
 
-from xmlhelpers import get_element_maker
-from constants import ENV_NS, WSSE_NS, WSU_NS
+from .xmlhelpers import get_element_maker
+from .constants import ENV_NS, WSSE_NS, WSU_NS
 
 NS2_NS = 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/'
 STBH_NS = 'http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader'

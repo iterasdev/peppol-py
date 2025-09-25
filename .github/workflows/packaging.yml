@@ -1,0 +1,35 @@
+name: Packaging
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  packaging:
+    name: packaging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.13
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: pip3 install -U setuptools build check-manifest twine
+      - name: Run check-manifest
+        run: check-manifest .
+        working-directory: .
+      - name: Build package
+        run: python -m build
+        working-directory: .
+      - name: Check package
+        run: twine check dist/*
+        working-directory: .

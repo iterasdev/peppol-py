@@ -17,7 +17,7 @@ xmlsec1 --verify --id-attr:Id Body --id-attr:Id Messaging --verbose --pubkey-cer
 ## xmlsec encryption
 
 ```
-xmlsec1 --encrypt --pubkey-cert-pem cert.pem --session-key aes-128 --binary-data test.xml.gz --output test-result.xml --verbose --lax-key-search encryption.xml
+xmlsec1 --encrypt --pubkey-cert-pem cert.pem --session-key aes-128 --binary-data test.xml.gz --output test-result.xml --verbose --lax-key-search sendpeppol_encrypt_template.xml
 ```
 
 ## xmlsec decryption

@@ -6,18 +6,95 @@ from .validation import validate_peppol_document
 from .sender import send_peppol_document, get_common_name_from_certificate
 
 PEPPOL_ORGANIZATION_ID_TYPES = {
-    # https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/
-    'DK:CVR': '0184',
-    'DK:P': '0096',
-    'NO:ORGNR': '0192',
-    'IS:KT': '0196',
+    # https://docs.peppol.eu/edelivery/codelists/v9.3/Peppol%20Code%20Lists%20-%20Participant%20identifier%20schemes%20v9.3.json
+    # Backwards-compatibility additions
+    'EAN': '0088',  # official name: GLN
+    'DK:CVR': '0184',  # official name: DK:DIGST
+    'NO:ORGNR': '0192',  # official name: NO:ORG
+    'IS:KT': '0196',  # official name: IS:KTNR
+    # Official list
+    'FR:SIRENE': '0002',
     'SE:ORGNR': '0007',
-    # 'FO:MVG': '', # not assigned yet in the code list
-    'EAN': '0088',
+    'FR:SIRET': '0009',
+    'DUNS': '0060',
     'GLN': '0088',
+    'DK:P': '0096',
+    'IT:FTI': '0097',
+    'NL:KVK': '0106',
+    'EU:NAL': '0130',
+    'IT:SIA': '0135',
+    'IT:SECETI': '0142',
+    'AU:ABN': '0151',
+    'CH:UIDB': '0183',
+    'DK:DIGST': '0184',
+    'JP:SST': '0188',
+    'NL:OINO': '0190',
+    'EE:CC': '0191',
+    'NO:ORG': '0192',
+    'UBLBE': '0193',
+    'SG:UEN': '0195',
+    'IS:KTNR': '0196',
+    'DK:ERST': '0198',
+    'LEI': '0199',
+    'LT:LEC': '0200',
+    'IT:CUUO': '0201',
+    'DE:LWID': '0204',
+    'IT:COD': '0205',
+    'BE:EN': '0208',
+    'GS1': '0209',
+    'IT:CFI': '0210',
+    'IT:IVA': '0211',
+    'FI:OVT2': '0216',
+    'LV:URN': '0218',
+    'JP:IIN': '0221',
+    'FR:CTC': '0225',
+    'MY:EIF': '0230',
+    'AE:TIN': '0235',
+    'LU:MAT': '0240',
+    'SPIS': '0242',
+    'HU:VAT': '9910',
+    'EU:REID': '9913',
+    'AT:VAT': '9914',
+    'AT:GOV': '9915',
+    'IBAN': '9918',
+    'AT:KUR': '9919',
+    'ES:VAT': '9920',
+    'AD:VAT': '9922',
+    'AL:VAT': '9923',
+    'BA:VAT': '9924',
+    'BE:VAT': '9925',
+    'BG:VAT': '9926',
+    'CH:VAT': '9927',
+    'CY:VAT': '9928',
+    'CZ:VAT': '9929',
+    'DE:VAT': '9930',
+    'EE:VAT': '9931',
+    'GB:VAT': '9932',
+    'GR:VAT': '9933',
+    'HR:VAT': '9934',
+    'IE:VAT': '9935',
+    'LI:VAT': '9936',
+    'LT:VAT': '9937',
+    'LU:VAT': '9938',
+    'LV:VAT': '9939',
+    'MC:VAT': '9940',
+    'ME:VAT': '9941',
+    'MK:VAT': '9942',
+    'MT:VAT': '9943',
+    'NL:VAT': '9944',
+    'PL:VAT': '9945',
+    'PT:VAT': '9946',
+    'RO:VAT': '9947',
+    'RS:VAT': '9948',
+    'SI:VAT': '9949',
+    'SK:VAT': '9950',
+    'SM:VAT': '9951',
+    'TR:VAT': '9952',
+    'VA:VAT': '9953',
+    'FR:VAT': '9957',
+    'US:EIN': '9959',
 }
 PEPPOL_REVERSED_ORGANIZATION_ID_TYPES = {v: k for k, v in PEPPOL_ORGANIZATION_ID_TYPES.items()}
-PEPPOL_ORGANIZATION_ID_TYPES_WITH_COUNTRY_PREFIX = ['DK:CVR']
 
 PEPPOL_END_USER_STATISTICS_SCHEMATRON_XSLS = ['peppol-end-user-statistics-reporting-1.1.4.xsl']
 PEPPOL_TRANSACTION_STATISTICS_SCHEMATRON_XSLS = ['peppol-transaction-statistics-reporting-1.0.4.xsl']
@@ -25,29 +102,15 @@ PEPPOL_TRANSACTION_STATISTICS_SCHEMATRON_XSLS = ['peppol-transaction-statistics-
 def skip_none_kwargs(kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
 
-def generate_organization_id(E, ns, variant, options, id_name, organization_id, organization_id_type, country_code):
-    if organization_id_type and organization_id_type.startswith('DK:') and country_code in ['GL', 'FO']:
-        # the country code must still be DK even if they're outside DK
-        country_code = 'DK'
-
-    org_id_without_country = organization_id
-    if org_id_without_country.startswith(country_code):
-        org_id_without_country = org_id_without_country[len(country_code):]
-
-    org_id_with_country = organization_id
-    if not org_id_with_country.startswith(country_code):
-        org_id_with_country = country_code + org_id_with_country
-
-    org_id = org_id_with_country
-    scheme_id = "ZZZ"
-
+def clean_organization_id(organization_id, organization_id_type):
     if organization_id_type in PEPPOL_REVERSED_ORGANIZATION_ID_TYPES:
         scheme_id = organization_id_type
     else:
         scheme_id = PEPPOL_ORGANIZATION_ID_TYPES.get(organization_id_type)
+    return scheme_id, organization_id
 
-    if PEPPOL_REVERSED_ORGANIZATION_ID_TYPES.get(scheme_id) not in PEPPOL_ORGANIZATION_ID_TYPES_WITH_COUNTRY_PREFIX:
-        org_id = org_id_without_country
+def generate_organization_id(E, ns, id_name, organization_id, organization_id_type):
+    scheme_id, org_id = clean_organization_id(organization_id, organization_id_type)
 
     return E(ns("cbc", id_name), org_id, **skip_none_kwargs({'schemeID': scheme_id}))
 
@@ -197,7 +260,7 @@ def send_peppol_statistics(
     end_user_xml = render_peppol_end_user_statistics_xml(aggr_stats, certfile)
     transaction_xml = render_peppol_transaction_statistics_xml(aggr_stats, certfile)
 
-    sender_id_element = generate_organization_id(ElementMaker(), lambda shorthand, tag: tag, 'Peppol', {}, "EndpointID", our_endpoint['id'], our_endpoint['type'], our_endpoint['country'])
+    sender_id_element = generate_organization_id(ElementMaker(), lambda shorthand, tag: tag, "EndpointID", our_endpoint['id'], our_endpoint['type'])
     sender_id = sender_id_element.get('schemeID') + ':' + sender_id_element.text
     receiver_id = '9925:BE0848934496'
 

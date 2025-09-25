@@ -26,6 +26,12 @@ dependencies = [
     "dnspython==2.*", # tested with 2.8.0
 ]
 
+
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]
+
 [project.urls]
 Homepage = "https://github.com/iterasdev/peppol-py"
 Issues = "https://github.com/iterasdev/peppol-py/issues"

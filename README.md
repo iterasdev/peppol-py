@@ -150,13 +150,8 @@ This implementation was sponsored by [iteras], one of the largest SSAS
 solutions in the nordics for managing print and digital media
 subscriptions.
 
-## License
-
-The software is free to use and is provided under the [beerware] license.
-
 [peppol eDelivery]: https://ec.europa.eu/digital-building-blocks/wikis/display/DIGITAL/eDelivery+AS4+-+1.15
 [oxalis]: https://github.com/OxalisCommunity
 [phase4]: https://github.com/phax/phase4
 [xmlsec]: https://github.com/lsh123/xmlsec
 [iteras]: https://www.iteras.dk/
-[beerware]: https://en.wikipedia.org/wiki/Beerware

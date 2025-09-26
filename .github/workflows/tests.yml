@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  packaging:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.13
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Dependencies
+        run: pip3 install -U setuptools
+      - name: Install package and dependencies
+        run: pip3 install -e .[dev]
+      - name: Run tests
+        run: pytest
+        working-directory: src

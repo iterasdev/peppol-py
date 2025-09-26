@@ -1,1 +1,2 @@
 recursive-include src/peppol_py/data *
+recursive-exclude src/tests *

@@ -1,7 +1,9 @@
+from typing import List
+
 from lxml import etree
 from lxml.builder import ElementMaker
 
-from .exception import SendPeppolError
+from .exception import SendPeppolError, make_sendpeppol_error
 from .validation import validate_peppol_document
 from .sender import send_peppol_document, get_common_name_from_certificate
 
@@ -157,7 +159,7 @@ def send_peppol_statistics(
     password: str,
     certfile: str,
     test_environment: bool
-) -> dict:
+) -> List[dict]:
     """
     Send peppol statistics to the required reporting endpoint.
 
@@ -201,16 +203,22 @@ def send_peppol_statistics(
     sender_id = sender_id_element.get('schemeID') + ':' + sender_id_element.text
     receiver_id = '9925:BE0848934496'
 
+    results = []
     failure = None
     for xml, schematron_xsls in [(end_user_xml, PEPPOL_END_USER_STATISTICS_SCHEMATRON_XSLS), (transaction_xml, PEPPOL_TRANSACTION_STATISTICS_SCHEMATRON_XSLS)]:
         errors = validate_peppol_document(xml, schematron_xsls)
         if errors:
             for d in errors:
                 print(d)
+            raise make_sendpeppol_error('Schematron validation failed.', 'validation', False)
 
         try:
-            return send_peppol_document(xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20)
+            results.append(
+                send_peppol_document(xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20)
+            )
         except SendPeppolError as ex:
             print(f"Failed with: {ex.code} {ex}")
             failure = ex
-    raise failure
+    if failure:
+        raise failure
+    return results

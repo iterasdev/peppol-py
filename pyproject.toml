@@ -11,7 +11,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-license = "Beerware"
+license = "0BSD"
 license-files = ["LICEN[CS]E*"]
 dependencies = [
     # Dependencies are mostly not pinned to make it easier to integrate peppol_py into existing

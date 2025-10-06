@@ -221,7 +221,8 @@ def send_peppol_statistics(
     keyfile: str,
     password: str,
     certfile: str,
-    test_environment: bool
+    test_environment: bool,
+    receiver_id: str='9925:BE0848934496'
 ) -> List[dict]:
     """
     Send peppol statistics to the required reporting endpoint.
@@ -258,13 +259,14 @@ def send_peppol_statistics(
     ``certfile`` (str): the path to the public key of the sender.
 
     ``test_environment`` (bool): use test SML servers?
+
+    ``receiver_id`` (str): Receiver participant, defaults to the OpenPeppol organization
     """
     end_user_xml = render_peppol_end_user_statistics_xml(aggr_stats, certfile)
     transaction_xml = render_peppol_transaction_statistics_xml(aggr_stats, certfile)
 
     sender_id_element = generate_organization_id(ElementMaker(), lambda shorthand, tag: tag, "EndpointID", our_endpoint['id'], our_endpoint['type'])
     sender_id = sender_id_element.get('schemeID') + ':' + sender_id_element.text
-    receiver_id = '9925:BE0848934496'
 
     results = []
     failure = None

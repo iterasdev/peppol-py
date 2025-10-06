@@ -116,24 +116,25 @@ def generate_organization_id(E, ns, id_name, organization_id, organization_id_ty
 
     return E(ns("cbc", id_name), org_id, **skip_none_kwargs({'schemeID': scheme_id}))
 
-def generate_peppol_statistics_header(E, from_date, to_date, certfile):
+def generate_common_name(certfile):
     with open(certfile, 'rb') as sender_certfile_f:
         sender_cert = sender_certfile_f.read()
-    sender_common_name = get_common_name_from_certificate(sender_cert)
+    return get_common_name_from_certificate(sender_cert)
 
+def generate_peppol_statistics_header(E, from_date, to_date, sender_common_name):
     return E('Header',
              E('ReportPeriod',
                E('StartDate', from_date.isoformat()),
                E('EndDate', to_date.isoformat())),
              E('ReporterID', sender_common_name, schemeID='CertSubjectCN'))
 
-def render_peppol_end_user_statistics_xml(stats, certfile):
+def render_peppol_end_user_statistics_xml(stats, sender_common_name):
     E = ElementMaker()
 
     xml = E('EndUserStatisticsReport',
             E('CustomizationID', 'urn:fdc:peppol.eu:edec:trns:end-user-statistics-report:1.1'),
             E('ProfileID', 'urn:fdc:peppol.eu:edec:bis:reporting:1.0'),
-            generate_peppol_statistics_header(E, stats['from_date'], stats['to_date'], certfile),
+            generate_peppol_statistics_header(E, stats['from_date'], stats['to_date'], sender_common_name),
             xmlns='urn:fdc:peppol:end-user-statistics-report:1.1')
 
     def generate_senders_and_receivers(s, r=None):
@@ -259,8 +260,9 @@ def send_peppol_statistics(
 
     ``test_environment`` (bool): use test SML servers?
     """
-    end_user_xml = render_peppol_end_user_statistics_xml(aggr_stats, certfile)
-    transaction_xml = render_peppol_transaction_statistics_xml(aggr_stats, certfile)
+    sender_common_name = generate_common_name(certfile)
+    end_user_xml = render_peppol_end_user_statistics_xml(aggr_stats, sender_common_name)
+    transaction_xml = render_peppol_transaction_statistics_xml(aggr_stats, sender_common_name)
 
     sender_id_element = generate_organization_id(ElementMaker(), lambda shorthand, tag: tag, "EndpointID", our_endpoint['id'], our_endpoint['type'])
     sender_id = sender_id_element.get('schemeID') + ':' + sender_id_element.text
@@ -277,7 +279,9 @@ def send_peppol_statistics(
 
         try:
             results.append(
-                send_peppol_document(xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20)
+                send_peppol_document(
+                    xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20, service_provider_id=sender_common_name,
+                )
             )
         except SendPeppolError as ex:
             print(f"Failed with: {ex.code} {ex}")

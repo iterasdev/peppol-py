@@ -121,9 +121,7 @@ To validate a prepared document, call ``validate_peppol_document``:
 ``` python
 from peppol_py import validate_peppol_document
 stats = validate_peppol_document(
-    document_content, xmlsec_path, keyfile, keyfile_password, certfile,
-    service_provider_id, sender_id=None, receiver_id=None, sender_country=None,
-    document_type_version=None, test_environment=True, timeout=20, dryrun=False
+    document_content, schematron_xsls, remove_namespaces_from_errors=True, warnings=False
 )
 ```
 

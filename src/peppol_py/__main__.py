@@ -27,7 +27,6 @@ def main():
 
     parser_send = subparsers.add_parser('send', help='Send a Peppol document')
     parser_send.add_argument('--document', help="The path of the document to send", required=True)
-    parser_send.add_argument('--service-provider', help="Service provider ID", required=True)
     parser_send.add_argument('--xmlsec-path', default='xmlsec1', help="The path to latest xmlsec binary")
     parser_send.add_argument('--schematron-path', default=['PEPPOL-EN16931-UBL.xsl'],
                              nargs='+', help="Schematron XSL files to validate with, defaults to bundled PEPPOL-EN16931-UBL.xsl")
@@ -65,8 +64,7 @@ def main():
             stats = send_peppol_document(document_content,
                                          parsed_args.xmlsec_path, parsed_args.keyfile,
                                          keyfile_password=parsed_args.password, certfile=parsed_args.certfile,
-                                         test_environment=parsed_args.test, document_type_version='2.1',
-                                         service_provider_id=parsed_args.service_provider)
+                                         test_environment=parsed_args.test, document_type_version='2.1')
             print(stats)
         except SendPeppolError as ex:
             print(f"Failed with: {ex.code} {ex}")

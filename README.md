@@ -106,7 +106,7 @@ To send a prepared xml document, call `send_peppol_document`:
 from peppol_py import send_peppol_document
 stats = send_peppol_document(
     document_content, xmlsec_path, keyfile, keyfile_password, certfile,
-    service_provider_id, sender_id=None, receiver_id=None, sender_country=None,
+    sender_id=None, receiver_id=None, sender_country=None,
     document_type_version=None, test_environment=True, timeout=20, dryrun=False
 )
 ```

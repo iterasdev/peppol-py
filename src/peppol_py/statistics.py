@@ -280,7 +280,7 @@ def send_peppol_statistics(
         try:
             results.append(
                 send_peppol_document(
-                    xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20, service_provider_id=sender_common_name,
+                    xml, xmlsec_path, keyfile, password, certfile, sender_id=sender_id, receiver_id=receiver_id, sender_country=our_endpoint['country'], test_environment=test_environment, timeout=20,
                 )
             )
         except SendPeppolError as ex:

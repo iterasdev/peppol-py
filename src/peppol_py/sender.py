@@ -113,7 +113,6 @@ def send_peppol_document(
     keyfile: str,
     keyfile_password: str,
     certfile: str,
-    service_provider_id: str,
     sender_id: str=None,
     receiver_id: str=None,
     sender_country: str=None,
@@ -187,6 +186,7 @@ def send_peppol_document(
 
     with open(certfile, 'rb') as sender_certfile_f:
         sender_cert = sender_certfile_f.read()
+    service_provider_id = get_common_name_from_certificate(sender_cert)
 
     validate_certificate(receiver_cert, test_environment)
     to_party_id = get_common_name_from_certificate(receiver_cert)

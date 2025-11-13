@@ -28,6 +28,8 @@ def validate_peppol_document(
     # only works with XSLT 1.0, and the Schematron is written in XSLT
     # 2.0
     with PySaxonProcessor(license=False) as proc:
+        # Prevent XXE: disallow access to any type of URL
+        proc.set_configuration_property("http://saxon.sf.net/feature/allowedProtocols", "")
         for validation_xsl_file in schematron_xsls:
             if not os.path.exists(validation_xsl_file):
                 # Resolve internal files

@@ -47,7 +47,7 @@ def get_smp_url_from_dns(participant_id, test_environment):
 
     # SMP: domain + path -> xml with service descriptions
     # get all available interfaces (invoice, credit note etc.)
-    return result + "/iso6523-actorid-upis::" + participant_id
+    return urllib.parse.urljoin(result, "./iso6523-actorid-upis::" + participant_id)
 
 
 def get_service_urls_for_participant_from_smp(participant_id, test_environment, timeout):

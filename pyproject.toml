@@ -1,6 +1,6 @@
 [project]
 name = "peppol-py"
-version = "1.1.1"
+version = "1.1.2"
 authors = [
     { name = "Anders Rune Jensen" },
     { name = "Raphael Michel" },

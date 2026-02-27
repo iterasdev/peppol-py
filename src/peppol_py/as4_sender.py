@@ -38,6 +38,18 @@ def post_edelivery_as4_document(endpoint_url, body, headers, timeout):
     try:
         response_xml = etree.fromstring(r.content)
     except (etree.XMLSyntaxError, ValueError) as e:
+        if r.status_code >= 400:
+            raise make_sendpeppol_error(
+                "Endpoint error",
+                'server-error',
+                temporary=True,
+                url=endpoint_url,
+                endpoint={
+                    'status_code': r.status_code,
+                    'error_xml': None,
+                    'error_msg': r.content,
+                }
+            )
         raise make_sendpeppol_error(str(e), 'server-error', temporary=True, url=endpoint_url)
 
     if not r.status_code == 200 or response_xml.find('.//{*}Header//{*}Receipt') is None:

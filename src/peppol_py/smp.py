@@ -47,6 +47,10 @@ def get_smp_url_from_dns(participant_id, test_environment):
 
     # SMP: domain + path -> xml with service descriptions
     # get all available interfaces (invoice, credit note etc.)
+    if not result.endswith("/"):
+        # If the record resolves as "https://example.com/smp", we need to go to "https://smp.service.afasonline.com/smp/iso…",
+        # not "https://smp.service.afasonline.com/isoo…
+        result += "/"
     return urllib.parse.urljoin(result, "./iso6523-actorid-upis::" + participant_id)
 
 

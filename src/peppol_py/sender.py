@@ -101,7 +101,7 @@ def validate_certificate(cert, test):
     )
     validator = CertificateValidator(cert, validation_context=context)
     validator.validate_usage(
-        key_usage={"key_encipherment", "key_agreement", "digital_signature"},
+        key_usage={"key_encipherment", "digital_signature"},
         extended_key_usage={"client_auth"},
         extended_optional=False,
     )

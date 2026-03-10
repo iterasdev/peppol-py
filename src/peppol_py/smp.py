@@ -86,7 +86,7 @@ def get_service_info_for_participant_from_smp(participant_id, document_type, tes
     '::' + Scope.InstanceIdentifier from the Peppol header."""
 
     service_urls = get_service_urls_for_participant_from_smp(participant_id, test_environment, timeout, user_agent)
-    service_url = next((url for url in service_urls if url.endswith(urllib.parse.quote(document_type))), None)
+    service_url = next((url for url in service_urls if urllib.parse.unquote(url).endswith(document_type)), None)
     if not service_url:
         raise make_sendpeppol_error("{0} not found in {1}".format(document_type, [urllib.parse.unquote(url) for url in service_urls]), 'not-found-in-smp')
 

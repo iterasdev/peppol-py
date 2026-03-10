@@ -50,12 +50,12 @@ def get_smp_url_from_dns(participant_id, test_environment):
     return result.rstrip("/") + "/iso6523-actorid-upis::" + participant_id
 
 
-def get_service_urls_for_participant_from_smp(participant_id, test_environment, timeout):
+def get_service_urls_for_participant_from_smp(participant_id, test_environment, timeout, user_agent):
     # SML: receiver -> SMP domain (DNS)
     smp_url = get_smp_url_from_dns(participant_id, test_environment)
 
     try:
-        r = requests.get(smp_url, timeout=timeout)
+        r = requests.get(smp_url, timeout=timeout, headers={"User-Agent": user_agent})
         r.raise_for_status()
     except (ConnectionError, requests.exceptions.RequestException) as e:
         temporary = True
@@ -80,18 +80,18 @@ def get_service_urls_for_participant_from_smp(participant_id, test_environment, 
     return service_urls
 
 
-def get_service_info_for_participant_from_smp(participant_id, document_type, test_environment, timeout):
+def get_service_info_for_participant_from_smp(participant_id, document_type, test_environment, timeout, user_agent):
     """Lookup participant in Peppol Service Metadata Publisher for
     information on service type. Service type is Scope.Identifier +
     '::' + Scope.InstanceIdentifier from the Peppol header."""
 
-    service_urls = get_service_urls_for_participant_from_smp(participant_id, test_environment, timeout)
+    service_urls = get_service_urls_for_participant_from_smp(participant_id, test_environment, timeout, user_agent)
     service_url = next((url for url in service_urls if url.endswith(urllib.parse.quote(document_type))), None)
     if not service_url:
         raise make_sendpeppol_error("{0} not found in {1}".format(document_type, [urllib.parse.unquote(url) for url in service_urls]), 'not-found-in-smp')
 
     try:
-        r = requests.get(service_url, timeout=timeout)
+        r = requests.get(service_url, timeout=timeout, headers={"User-Agent": user_agent})
         r.raise_for_status()
     except (ConnectionError, requests.exceptions.RequestException) as e:
         temporary = True

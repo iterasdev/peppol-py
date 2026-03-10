@@ -120,6 +120,7 @@ def send_peppol_document(
     test_environment: bool=True,
     timeout: int=20,
     dryrun: bool=False,
+    user_agent: str="peppol-py",
 ) -> dict:
     """
     Send a peppol document. Returned is a dictionary of information you need to record to later send reports to Peppol.
@@ -151,6 +152,8 @@ def send_peppol_document(
 
     ``dryrun`` (bool): if specified, will prepare, get the endpoint, test document for validation errors but not send to remote endpoint.
                        Return value will be a tuple of ``body, header, stats``.
+
+    ``user_agent`` (str): if specified, will replace the user agent sent on HTTP connections
     """
     document_xml = etree.fromstring(document_content)
     #print(etree.tostring(document_xml, pretty_print=True).decode())
@@ -176,7 +179,7 @@ def send_peppol_document(
 
     document_content, document_xml = wrap_ubl_in_peppol_standard_business_document_header(document_xml, utc_timestamp, document_type, process_type, sender_id, sender_country, receiver_id)
 
-    transport_profile, endpoint_url, receiver_cert = get_service_info_for_participant_from_smp(receiver_id, document_type, test_environment=test_environment, timeout=timeout)
+    transport_profile, endpoint_url, receiver_cert = get_service_info_for_participant_from_smp(receiver_id, document_type, test_environment=test_environment, timeout=timeout, user_agent=user_agent)
 
     if not endpoint_url:
         raise make_sendpeppol_error("Endpoint URL not found", 'not-found-in-smp')
@@ -206,6 +209,6 @@ def send_peppol_document(
     if dryrun:
         return body, headers, stats
 
-    post_edelivery_as4_document(endpoint_url, body, headers, timeout=timeout)
+    post_edelivery_as4_document(endpoint_url, body, headers, timeout=timeout, user_agent=user_agent)
 
     return stats

@@ -153,7 +153,7 @@ def send_peppol_document(
     ``dryrun`` (bool): if specified, will prepare, get the endpoint, test document for validation errors but not send to remote endpoint.
                        Return value will be a tuple of ``body, header, stats``.
 
-    ``user_agent`` (str): if specified, will replace the user agent sent on HTTP connections
+    ``user_agent`` (str): Specify to replace the default user agent (peppol-py) sent on HTTP connections.
     """
     document_xml = etree.fromstring(document_content)
     #print(etree.tostring(document_xml, pretty_print=True).decode())

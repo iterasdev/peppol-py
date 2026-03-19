@@ -9,6 +9,7 @@ from saxonche import PySaxonProcessor
 def validate_peppol_document(
     document_content: bytes,
     schematron_xsls: List[str],
+    xsd_file: str = None,
     remove_namespaces_from_errors=True,
     warnings=False
 ) -> List[dict]:
@@ -19,11 +20,27 @@ def validate_peppol_document(
 
     ``schematron_xsls`` (list of str): Either full paths to xsl files, or names of xsl files shipped with peppol_py.
 
+    ``xsd_file`` (str): Optional path to an XSD file for schema validation. Errors are returned as
+    dicts with ``text``, ``severity`` (``'error'``), and ``line`` keys.
+
     ``remove_namespaces_from_errors`` (bool): For shorter output of error messages.
 
     ``warnings`` (bool): If ``True``, warnings will be returned as well out.
     """
     errors = []
+
+    if xsd_file:
+        xml_doc = etree.fromstring(document_content)
+        with open(xsd_file, 'rb') as f:
+            xsd_doc = etree.parse(f)
+        schema = etree.XMLSchema(xsd_doc)
+        if not schema.validate(xml_doc):
+            for error in schema.error_log:
+                errors.append({
+                    'text': error.message,
+                    'severity': 'error',
+                    'line': error.line,
+                })
     # we need saxonche (SaxonC Home Edition) because lxml (libxsl)
     # only works with XSLT 1.0, and the Schematron is written in XSLT
     # 2.0

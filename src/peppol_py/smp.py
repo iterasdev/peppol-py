@@ -60,7 +60,8 @@ def get_service_urls_for_participant_from_smp(participant_id, test_environment, 
     except (ConnectionError, requests.exceptions.RequestException) as e:
         temporary = True
         code = 'server-error'
-        if isinstance(e, requests.exceptions.HTTPError) and e.response and e.response.status_code < 500:
+        if ((isinstance(e, requests.exceptions.HTTPError) and e.response and e.response.status_code < 500)
+            or ('[Errno -2] Name or service not known' in str(e))):
             temporary = False
             code = 'not-found-in-smp'
 

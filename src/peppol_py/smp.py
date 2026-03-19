@@ -128,3 +128,53 @@ def get_service_info_for_participant_from_smp(participant_id, document_type, tes
         break
 
     return transport_profile, endpoint_url, certificate
+
+
+def check_missing_peppol_doc_types(service_urls):
+    supported_doc_types = [url for url in service_urls if "busdox-docid-qns" in url]
+    supported_doc_types = ",".join(supported_doc_types)
+
+    required_doc_types = ['Invoice-2', 'CreditNote-2']
+    missing_doc_types = []
+    for required_doc_type in required_doc_types:
+        if required_doc_type not in supported_doc_types:
+            missing_doc_types.append(required_doc_type)
+
+    return missing_doc_types
+
+
+def validate_peppol_receiver(peppol_recipient, test_environment=True, timeout=20, user_agent="peppol-py", ignore_registry_communication_errors=False):
+    """Check whether a recipient is registered in SMP and supports Invoice and CreditNote document types.
+
+    ``peppol_recipient`` (str): the Peppol participant identifier, e.g. ``0184:12345678``.
+
+    ``test_environment`` (bool): use test SML servers?
+
+    ``timeout`` (int): number of seconds to wait for response from SMP.
+
+    ``user_agent`` (str): HTTP User-Agent header value.
+
+    ``ignore_registry_communication_errors`` (bool): if ``True``, server errors during SMP lookup
+    will be silently ignored and ``None`` returned instead of raising.
+
+    Raises :class:`SendPeppolError` if the recipient is not found or is missing required document types.
+    Returns ``None`` on success.
+    """
+    try:
+        service_urls = get_service_urls_for_participant_from_smp(peppol_recipient, test_environment, timeout, user_agent)
+    except (ConnectionError, requests.exceptions.RequestException) as e:
+        if ignore_registry_communication_errors:
+            return None
+        else:
+            raise make_sendpeppol_error(str(e), 'server-error', temporary=True)
+
+    if not service_urls:
+        raise make_sendpeppol_error("Receiver not found", 'not-found-in-smp')
+
+    missing_doc_types = check_missing_peppol_doc_types(service_urls)
+    if missing_doc_types:
+        raise make_sendpeppol_error(
+            "{0} not found in {1}".format(", ".join(missing_doc_types), [urllib.parse.unquote(url) for url in service_urls]),
+            'not-found-in-smp', missing_doc_types=missing_doc_types)
+
+    return None

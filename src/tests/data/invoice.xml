@@ -1,0 +1,209 @@
+<ns4:Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+             xmlns:ns2="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2"
+             xmlns:ns3="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+             xmlns:ns4="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2">
+   <CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</CustomizationID>
+   <ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</ProfileID>
+   <ID>PDK000592-45-20250606T083318</ID>
+   <IssueDate>2025-06-06</IssueDate>
+   <DueDate>2025-07-06</DueDate>
+   <InvoiceTypeCode>380</InvoiceTypeCode>
+   <DocumentCurrencyCode>EUR</DocumentCurrencyCode>
+   <AccountingCost>ACC:COST:232</AccountingCost>
+   <BuyerReference>1718728550</BuyerReference>
+   <ns3:AccountingSupplierParty>
+      <ns3:Party>
+         <EndpointID schemeID="0096">PDK000592</EndpointID>
+         <ns3:PartyIdentification>
+            <ID>PDK000592</ID>
+         </ns3:PartyIdentification>
+         <ns3:PartyName>
+            <Name>SupplierTradingName Ltd.</Name>
+         </ns3:PartyName>
+         <ns3:PostalAddress>
+            <StreetName>Main street 1</StreetName>
+            <AdditionalStreetName>Postbox 123</AdditionalStreetName>
+            <CityName>London</CityName>
+            <PostalZone>GB 123 EW</PostalZone>
+            <ns3:Country>
+               <IdentificationCode>GB</IdentificationCode>
+            </ns3:Country>
+         </ns3:PostalAddress>
+         <ns3:PartyTaxScheme>
+            <CompanyID>GB1232434</CompanyID>
+            <ns3:TaxScheme>
+               <ID>VAT</ID>
+            </ns3:TaxScheme>
+         </ns3:PartyTaxScheme>
+         <ns3:PartyLegalEntity>
+            <RegistrationName>SupplierOfficialName Ltd</RegistrationName>
+            <CompanyID>GB983294</CompanyID>
+         </ns3:PartyLegalEntity>
+      </ns3:Party>
+   </ns3:AccountingSupplierParty>
+   <ns3:AccountingCustomerParty>
+      <ns3:Party>
+         <EndpointID schemeID="9922">NGTBCNTRLP1001</EndpointID>
+         <ns3:PartyIdentification>
+            <ID>NGTBCNTRLP1001</ID>
+         </ns3:PartyIdentification>
+         <ns3:PartyName>
+            <Name>BuyerTradingName AS</Name>
+         </ns3:PartyName>
+         <ns3:PostalAddress>
+            <StreetName>Hovedgatan 32</StreetName>
+            <AdditionalStreetName>Po box 878</AdditionalStreetName>
+            <CityName>Stockholm</CityName>
+            <PostalZone>456 34</PostalZone>
+            <ns3:Country>
+               <IdentificationCode>SE</IdentificationCode>
+            </ns3:Country>
+         </ns3:PostalAddress>
+         <ns3:PartyTaxScheme>
+            <CompanyID>SE4598375937</CompanyID>
+            <ns3:TaxScheme>
+               <ID>VAT</ID>
+            </ns3:TaxScheme>
+         </ns3:PartyTaxScheme>
+         <ns3:PartyLegalEntity>
+            <RegistrationName>Buyer Official Name</RegistrationName>
+            <CompanyID schemeID="0183">39937423947</CompanyID>
+         </ns3:PartyLegalEntity>
+         <ns3:Contact>
+            <Name>Lisa Johnson</Name>
+            <Telephone>23434234</Telephone>
+            <ElectronicMail>lj@buyer.se</ElectronicMail>
+         </ns3:Contact>
+      </ns3:Party>
+   </ns3:AccountingCustomerParty>
+   <ns3:Delivery>
+      <ActualDeliveryDate>2017-11-01</ActualDeliveryDate>
+      <ns3:DeliveryLocation>
+         <ID schemeID="0088">9483759475923478</ID>
+         <ns3:Address>
+            <StreetName>Delivery street 2</StreetName>
+            <AdditionalStreetName>Building 56</AdditionalStreetName>
+            <CityName>Stockholm</CityName>
+            <PostalZone>21234</PostalZone>
+            <ns3:Country>
+               <IdentificationCode>SE</IdentificationCode>
+            </ns3:Country>
+         </ns3:Address>
+      </ns3:DeliveryLocation>
+      <ns3:DeliveryParty>
+         <ns3:PartyName>
+            <Name>Delivery party Name</Name>
+         </ns3:PartyName>
+      </ns3:DeliveryParty>
+   </ns3:Delivery>
+   <ns3:PaymentMeans>
+      <PaymentMeansCode name="Credit transfer">30</PaymentMeansCode>
+      <PaymentID>Snippet1</PaymentID>
+      <ns3:PayeeFinancialAccount>
+         <ID>IBAN32423940</ID>
+         <Name>AccountName</Name>
+         <ns3:FinancialInstitutionBranch>
+            <ID>BIC324098</ID>
+         </ns3:FinancialInstitutionBranch>
+      </ns3:PayeeFinancialAccount>
+   </ns3:PaymentMeans>
+   <ns3:PaymentTerms>
+      <Note>Payment within 10 days, 2% discount</Note>
+   </ns3:PaymentTerms>
+   <ns3:AllowanceCharge>
+      <ChargeIndicator>true</ChargeIndicator>
+      <AllowanceChargeReason>Insurance</AllowanceChargeReason>
+      <Amount currencyID="EUR">25</Amount>
+      <ns3:TaxCategory>
+         <ID>S</ID>
+         <Percent>25.0</Percent>
+         <ns3:TaxScheme>
+            <ID>VAT</ID>
+         </ns3:TaxScheme>
+      </ns3:TaxCategory>
+   </ns3:AllowanceCharge>
+   <ns3:TaxTotal>
+      <TaxAmount currencyID="EUR">331.25</TaxAmount>
+      <ns3:TaxSubtotal>
+         <TaxableAmount currencyID="EUR">1325</TaxableAmount>
+         <TaxAmount currencyID="EUR">331.25</TaxAmount>
+         <ns3:TaxCategory>
+            <ID>S</ID>
+            <Percent>25.0</Percent>
+            <ns3:TaxScheme>
+               <ID>VAT</ID>
+            </ns3:TaxScheme>
+         </ns3:TaxCategory>
+      </ns3:TaxSubtotal>
+   </ns3:TaxTotal>
+   <ns3:LegalMonetaryTotal>
+      <LineExtensionAmount currencyID="EUR">1300</LineExtensionAmount>
+      <TaxExclusiveAmount currencyID="EUR">1325</TaxExclusiveAmount>
+      <TaxInclusiveAmount currencyID="EUR">1656.25</TaxInclusiveAmount>
+      <ChargeTotalAmount currencyID="EUR">25</ChargeTotalAmount>
+      <PayableAmount currencyID="EUR">1656.25</PayableAmount>
+   </ns3:LegalMonetaryTotal>
+   <ns3:InvoiceLine>
+      <ID>1</ID>
+      <InvoicedQuantity unitCode="DAY">7</InvoicedQuantity>
+      <LineExtensionAmount currencyID="EUR">2800</LineExtensionAmount>
+      <AccountingCost>Konteringsstreng</AccountingCost>
+      <ns3:OrderLineReference>
+         <LineID>123</LineID>
+      </ns3:OrderLineReference>
+      <ns3:Item>
+         <Description>Description of item</Description>
+         <Name>item name</Name>
+         <ns3:StandardItemIdentification>
+            <ID schemeID="0088">21382183120983</ID>
+         </ns3:StandardItemIdentification>
+         <ns3:OriginCountry>
+            <IdentificationCode>NO</IdentificationCode>
+         </ns3:OriginCountry>
+         <ns3:CommodityClassification>
+            <ItemClassificationCode listID="SRV">09348023</ItemClassificationCode>
+         </ns3:CommodityClassification>
+         <ns3:ClassifiedTaxCategory>
+            <ID>S</ID>
+            <Percent>25.0</Percent>
+            <ns3:TaxScheme>
+               <ID>VAT</ID>
+            </ns3:TaxScheme>
+         </ns3:ClassifiedTaxCategory>
+      </ns3:Item>
+      <ns3:Price>
+         <PriceAmount currencyID="EUR">400</PriceAmount>
+      </ns3:Price>
+   </ns3:InvoiceLine>
+   <ns3:InvoiceLine>
+      <ID>2</ID>
+      <InvoicedQuantity unitCode="DAY">-3</InvoicedQuantity>
+      <LineExtensionAmount currencyID="EUR">-1500</LineExtensionAmount>
+      <ns3:OrderLineReference>
+         <LineID>123</LineID>
+      </ns3:OrderLineReference>
+      <ns3:Item>
+         <Description>Description 2</Description>
+         <Name>item name 2</Name>
+         <ns3:StandardItemIdentification>
+            <ID schemeID="0088">21382183120983</ID>
+         </ns3:StandardItemIdentification>
+         <ns3:OriginCountry>
+            <IdentificationCode>NO</IdentificationCode>
+         </ns3:OriginCountry>
+         <ns3:CommodityClassification>
+            <ItemClassificationCode listID="SRV">09348023</ItemClassificationCode>
+         </ns3:CommodityClassification>
+         <ns3:ClassifiedTaxCategory>
+            <ID>S</ID>
+            <Percent>25.0</Percent>
+            <ns3:TaxScheme>
+               <ID>VAT</ID>
+            </ns3:TaxScheme>
+         </ns3:ClassifiedTaxCategory>
+      </ns3:Item>
+      <ns3:Price>
+         <PriceAmount currencyID="EUR">500</PriceAmount>
+      </ns3:Price>
+   </ns3:InvoiceLine>
+</ns4:Invoice>

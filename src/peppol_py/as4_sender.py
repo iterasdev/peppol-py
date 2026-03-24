@@ -13,7 +13,7 @@ from .as4 import generate_as4_envelope
 def get_headers_and_body_for_posting_as4_document(document_content, document_xml, utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id):
     message, gzip, attachment_id = make_as4_message_to_post(utc_timestamp, document_type, process_type, sender_id, receiver_id, to_party_id, document_content, xmlsec_path, keyfile, keyfile_password, sender_cert, receiver_cert, service_provider_id)
 
-    related = MIMEMultipart('related')
+    related = MIMEMultipart('related', type='application/soap+xml')
 
     mt = MIMEApplication(message, 'soap+xml', email.encoders.encode_7or8bit)
     mt.add_header("Content-ID", "<root.message@cxf.apache.org>")

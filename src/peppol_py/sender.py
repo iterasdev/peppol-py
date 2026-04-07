@@ -131,11 +131,9 @@ def send_peppol_document(
 
     ``keyfile`` (str): the path to the private key of the sender.
 
-    ``password`` (str): the password for the private key of the sender.
+    ``keyfile_password`` (str): the password for the private key of the sender.
 
     ``certfile`` (str): the path to the public key of the sender.
-
-    ``service_provider_id`` (bool): identifier of the sending service provider.
 
     ``sender_id`` (str): optional sender id, will be extracted from document if not specified.
 

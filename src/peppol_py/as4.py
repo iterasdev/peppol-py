@@ -48,7 +48,7 @@ def generate_as4_envelope(utc_timestamp, document_type, process_type, sender_id,
                           E(ns('ns2', 'Property'), 'application/gzip', name='CompressionType'),
                           E(ns('ns2', 'Property'), 'application/xml', name='MimeType')), href=attachment_id)))
 
-    messaging = E(ns('ns2', 'Messaging'), user_message, {ns('env', 'mustUnderstand'): 'true', ns('wsu', 'Id'): 'messaging'})
+    messaging = E(ns('ns2', 'Messaging'), user_message, {ns('env', 'mustUnderstand'): 'true', ns('wsu', 'Id'): 'messaging', ns('env', 'role'): 'http://docs.oasis-open.org/ebxml-msg/ebms/v3.0/ns/core/200704/defaultRole'})
 
     body = E(ns('env', 'Body'), {ns('wsu', 'Id'): 'body'})
 

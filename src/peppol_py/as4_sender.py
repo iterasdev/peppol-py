@@ -32,7 +32,7 @@ def get_headers_and_body_for_posting_as4_document(document_content, document_xml
 def post_edelivery_as4_document(endpoint_url, body, headers, timeout, user_agent):
     try:
         r = requests.post(endpoint_url, data=body, headers={"User-Agent": user_agent, **headers}, timeout=timeout)
-    except (ConnectionError, requests.exceptions.RequestException) as e:
+    except requests.exceptions.RequestException as e:
         raise make_sendpeppol_error(str(e), 'server-error', temporary=True, url=endpoint_url)
 
     try:

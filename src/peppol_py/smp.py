@@ -57,7 +57,7 @@ def get_service_urls_for_participant_from_smp(participant_id, test_environment, 
     try:
         r = requests.get(smp_url, timeout=timeout, headers={"User-Agent": user_agent})
         r.raise_for_status()
-    except (ConnectionError, requests.exceptions.RequestException) as e:
+    except requests.exceptions.RequestException as e:
         temporary = True
         code = 'server-error'
         if ((isinstance(e, requests.exceptions.HTTPError) and e.response and e.response.status_code < 500)
@@ -94,7 +94,7 @@ def get_service_info_for_participant_from_smp(participant_id, document_type, tes
     try:
         r = requests.get(service_url, timeout=timeout, headers={"User-Agent": user_agent})
         r.raise_for_status()
-    except (ConnectionError, requests.exceptions.RequestException) as e:
+    except requests.exceptions.RequestException as e:
         temporary = True
         code = 'server-error'
         if isinstance(e, requests.exceptions.HTTPError) and e.response and e.response.status_code < 500:
@@ -162,7 +162,7 @@ def validate_peppol_receiver(peppol_recipient, test_environment=True, timeout=20
     """
     try:
         service_urls = get_service_urls_for_participant_from_smp(peppol_recipient, test_environment, timeout, user_agent)
-    except (ConnectionError, requests.exceptions.RequestException) as e:
+    except requests.exceptions.RequestException as e:
         if ignore_registry_communication_errors:
             return None
         else:

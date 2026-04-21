@@ -122,7 +122,7 @@ def get_service_info_for_participant_from_smp(participant_id, document_type, tes
         endpoint_url = endpoint_e.findtext('./{*}EndpointReference/{*}Address')
         certificate = endpoint_e.findtext('./{*}Certificate')
         if certificate:
-            certificate = b'-----BEGIN CERTIFICATE-----\n' + certificate.encode('ascii') + b'\n-----END CERTIFICATE-----'
+            certificate = b'-----BEGIN CERTIFICATE-----\n' + certificate.strip().encode('ascii') + b'\n-----END CERTIFICATE-----'
 
         break
 

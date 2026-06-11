@@ -46,7 +46,10 @@ def validate_peppol_document(
     # 2.0
     with PySaxonProcessor(license=False) as proc:
         # Prevent XXE: disallow access to any type of URL
-        proc.set_configuration_property("http://saxon.sf.net/feature/allowedProtocols", "")
+        # In saxonche 12, "" blocked all protocols but still allowed file:// for local stylesheets.
+        # In saxonche 13, "" also blocks file://, which prevents loading local XSL files.
+        # "file" allows only file:// access, preventing XXE via HTTP in both versions.
+        proc.set_configuration_property("http://saxon.sf.net/feature/allowedProtocols", "file")
         for validation_xsl_file in schematron_xsls:
             if not os.path.exists(validation_xsl_file):
                 # Resolve internal files

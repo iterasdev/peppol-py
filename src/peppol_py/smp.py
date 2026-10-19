@@ -15,9 +15,9 @@ def get_smp_url_from_dns(participant_id, test_environment):
     smp_id = base64.b32encode(hashlib.sha256(participant_id.lower().encode()).digest()).decode().rstrip("=")
 
     if test_environment:
-        base_hostname = 'acc.edelivery.tech.ec.europa.eu'
+        base_hostname = 'participant.sml.test.tech.peppol.org'
     else:
-        base_hostname = 'edelivery.tech.ec.europa.eu'
+        base_hostname = 'participant.sml.prod.tech.peppol.org'
 
     smp_domain = f'{smp_id}.iso6523-actorid-upis.{base_hostname}'
 
